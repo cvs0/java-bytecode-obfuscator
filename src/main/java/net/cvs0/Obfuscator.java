@@ -6,6 +6,7 @@ import net.cvs0.transformers.ClassRenameTransformer;
 import net.cvs0.transformers.FieldRenameTransformer;
 import net.cvs0.transformers.MethodRenameTransformer;
 import net.cvs0.transformers.LocalVariableRenameTransformer;
+import net.cvs0.transformers.ConditionObfuscationTransformer;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +26,7 @@ public class Obfuscator
         engine.registerTransformer(new ClassRenameTransformer());
         engine.registerTransformer(new FieldRenameTransformer());
         engine.registerTransformer(new MethodRenameTransformer());
+        engine.registerTransformer(new ConditionObfuscationTransformer());
         engine.registerTransformer(new LocalVariableRenameTransformer());
     }
     

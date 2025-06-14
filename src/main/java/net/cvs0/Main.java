@@ -41,6 +41,9 @@ public class Main implements Callable<Integer>
     @Option(names = {"--rename-local-variables"}, description = "Enable local variable renaming")
     private Boolean renameLocalVariables;
 
+    @Option(names = {"--obfuscate-conditions"}, description = "Enable condition obfuscation (transforms true/false into complex expressions)")
+    private Boolean obfuscateConditions;
+
     @Option(names = {"--mappings", "--output-mappings"}, description = "Output mappings file")
     private File mappingsFile;
 
@@ -153,6 +156,10 @@ public class Main implements Callable<Integer>
         
         if (renameLocalVariables != null) {
             builder.renameLocalVariables(renameLocalVariables);
+        }
+        
+        if (obfuscateConditions != null) {
+            builder.obfuscateConditions(obfuscateConditions);
         }
         
         if (verbose) {

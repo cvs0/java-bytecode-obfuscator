@@ -10,6 +10,7 @@ public class ObfuscationConfig
     private final boolean renameFields;
     private final boolean renameMethods;
     private final boolean renameLocalVariables;
+    private final boolean obfuscateConditions;
     private final boolean verbose;
     private final KeepRules keepRules;
     private final String packageScope;
@@ -21,6 +22,7 @@ public class ObfuscationConfig
             boolean renameFields,
             boolean renameMethods,
             boolean renameLocalVariables,
+            boolean obfuscateConditions,
             boolean verbose,
             KeepRules keepRules,
             String packageScope,
@@ -31,6 +33,7 @@ public class ObfuscationConfig
         this.renameFields = renameFields;
         this.renameMethods = renameMethods;
         this.renameLocalVariables = renameLocalVariables;
+        this.obfuscateConditions = obfuscateConditions;
         this.verbose = verbose;
         this.keepRules = keepRules != null ? keepRules : new KeepRules();
         this.packageScope = packageScope;
@@ -60,6 +63,11 @@ public class ObfuscationConfig
     public boolean isRenameLocalVariables()
     {
         return renameLocalVariables;
+    }
+    
+    public boolean isObfuscateConditions()
+    {
+        return obfuscateConditions;
     }
     
     public boolean isVerbose()
@@ -226,6 +234,7 @@ public class ObfuscationConfig
         private boolean renameFields = true;
         private boolean renameMethods = true;
         private boolean renameLocalVariables = true;
+        private boolean obfuscateConditions = false;
         private boolean verbose = false;
         private final KeepRules keepRules = new KeepRules();
         private String packageScope;
@@ -234,11 +243,11 @@ public class ObfuscationConfig
         public Builder mainClass(String mainClass)
         {
             this.mainClass = mainClass;
-            if (mainClass != null) {
+            if (mainClass != null && !mainClass.isEmpty()) {
                 String[] parts = mainClass.split("/");
-                if (parts.length >= 2) {
+                if (parts.length >= 2 && parts[0] != null && parts[1] != null) {
                     this.packageScope = parts[0] + "/" + parts[1];
-                } else if (parts.length == 1) {
+                } else if (parts.length == 1 && parts[0] != null) {
                     this.packageScope = parts[0];
                 } else {
                     this.packageScope = "";
@@ -268,6 +277,12 @@ public class ObfuscationConfig
         public Builder renameLocalVariables(boolean renameLocalVariables)
         {
             this.renameLocalVariables = renameLocalVariables;
+            return this;
+        }
+        
+        public Builder obfuscateConditions(boolean obfuscateConditions)
+        {
+            this.obfuscateConditions = obfuscateConditions;
             return this;
         }
         
@@ -355,7 +370,7 @@ public class ObfuscationConfig
         
         public ObfuscationConfig build()
         {
-            return new ObfuscationConfig(mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, verbose, keepRules, packageScope, namingMode);
+            return new ObfuscationConfig(mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, obfuscateConditions, verbose, keepRules, packageScope, namingMode);
         }
     }
 }

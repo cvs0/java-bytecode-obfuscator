@@ -9,6 +9,7 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Method Renaming** - Obfuscate method names with intelligent handling of constructors, synthetic methods, and inheritance
 - **Field Renaming** - Rename fields while maintaining proper access relationships
 - **Local Variable Renaming** - Obfuscate local variable names for additional protection
+- **Condition Obfuscation** - Transform simple boolean constants (true/false) into complex arithmetic expressions
 - **Reference Updating** - Automatically updates all references to renamed elements throughout the codebase
 - **Inheritance-Aware Renaming** - Properly handles interface implementations and method overrides
 - **Multiple Naming Modes** - Choose from sequential, alphabetic, random short/long, or single character naming schemes
@@ -58,25 +59,25 @@ cd java-bytecode-obfuscator
 ```bash
 # Simple obfuscation with all features enabled
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables
+  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
 
 # With main class protection
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
   -m com.example.Main --keep-main-class --keep-entry-points \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables
+  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
 
 # Generate mappings for debugging
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
   --mappings mappings.txt --verbose \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables
+  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
 
 # Use different naming modes
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
-  --naming-mode RANDOM_SHORT --rename-classes --rename-methods --rename-fields
+  --naming-mode RANDOM_SHORT --rename-classes --rename-methods --rename-fields --obfuscate-conditions
 
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
   --naming-mode SEQUENTIAL_ALPHA --verbose \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables
+  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
 ```
 
 ### Configuration File
@@ -89,6 +90,8 @@ Create a JSON configuration file for complex scenarios:
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "renameLocalVariables": true,
+  "obfuscateConditions": true,
   "namingMode": "RANDOM_SHORT",
   "verbose": true,
   "keepRules": {
@@ -117,6 +120,8 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameClasses(true)
     .renameFields(true)
     .renameMethods(true)
+    .renameLocalVariables(true)
+    .obfuscateConditions(true)
     .namingMode(NamingMode.RANDOM_SHORT)
     .verbose(true)
     
@@ -194,6 +199,101 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .build();
 ```
 
+## Condition Obfuscation
+
+Condition obfuscation transforms simple boolean constants (`true` and `false`) into mathematically equivalent complex expressions that make the code harder to understand and analyze.
+
+### How It Works
+
+The transformer replaces simple boolean constants with arithmetic expressions that evaluate to the same value:
+
+**Original Code:**
+```java
+if (someFlag == true) {
+    doSomething();
+}
+boolean result = false;
+```
+
+**Obfuscated Code:**
+```java
+// true becomes: 2 - 1
+if (someFlag == (2 - 1)) {
+    doSomething();
+}
+// false becomes: 1 - 1  
+boolean result = (1 - 1);
+```
+
+### Features
+
+- **Safe Transformation** - Only transforms constants that are likely to be boolean conditions (10% probability to avoid breaking non-boolean integer usage)
+- **Multiple Strategies** - Uses various mathematical expressions to avoid patterns
+- **Stackmap-Safe** - Generates bytecode that passes JVM verification
+- **Conservative Approach** - Only targets simple constant loading to maintain program correctness
+
+### Usage
+
+```bash
+# Enable condition obfuscation via CLI
+java -jar obfuscator.jar input.jar output.jar --obfuscate-conditions
+
+# Combined with other obfuscation techniques
+java -jar obfuscator.jar input.jar output.jar \
+  --rename-classes --rename-methods --rename-fields \
+  --obfuscate-conditions --verbose
+```
+
+### Configuration
+
+```json
+{
+  "renameClasses": true,
+  "renameFields": true,
+  "renameMethods": true,
+  "obfuscateConditions": true,
+  "verbose": true
+}
+```
+
+### Programmatic Usage
+
+```java
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .renameClasses(true)
+    .renameFields(true)
+    .renameMethods(true)
+    .obfuscateConditions(true)
+    .build();
+```
+
+### Examples
+
+**Before Obfuscation:**
+```java
+public boolean isEnabled() {
+    return true;
+}
+
+public void process() {
+    if (false) {
+        handleError();
+    }
+}
+```
+
+**After Obfuscation:**
+```java
+public boolean a() {
+    return 3 - 2;  // Evaluates to 1 (true)
+}
+
+public void b() {
+    if (5 - 5) {   // Evaluates to 0 (false)
+        c();
+    }
+}
+
 ## CLI Reference
 
 ### Command Line Options
@@ -212,6 +312,7 @@ Options:
       --rename-fields         Enable field renaming  
       --rename-methods        Enable method renaming
       --rename-local-variables Enable local variable renaming
+      --obfuscate-conditions  Enable condition obfuscation (transforms boolean constants)
   -n, --naming-mode <mode>    Name generation mode (SEQUENTIAL_PREFIX, SEQUENTIAL_ALPHA, 
                               RANDOM_SHORT, RANDOM_LONG, SINGLE_CHAR)
       --mappings <file>       Output mappings file
@@ -238,6 +339,7 @@ java -jar obfuscator.jar input.jar output.jar \
   --main-class com/example/Main \
   --keep-main-class \
   --keep-entry-points \
+  --obfuscate-conditions \
   --verbose
 
 # Keep specific classes
@@ -252,16 +354,18 @@ java -jar obfuscator.jar input.jar output.jar --mappings mappings.txt
 # Use different naming modes
 java -jar obfuscator.jar input.jar output.jar \
   --naming-mode RANDOM_LONG \
-  --rename-classes --rename-methods --rename-fields
+  --rename-classes --rename-methods --rename-fields --obfuscate-conditions
 
 java -jar obfuscator.jar input.jar output.jar \
   --naming-mode SINGLE_CHAR \
+  --obfuscate-conditions \
   --verbose
 
 # Override config file settings
 java -jar obfuscator.jar -c config.json input.jar output.jar \
   --rename-classes false \
   --naming-mode SEQUENTIAL_ALPHA \
+  --obfuscate-conditions \
   --verbose
 ```
 
@@ -274,6 +378,8 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "renameLocalVariables": true,
+  "obfuscateConditions": true,
   "namingMode": "SEQUENTIAL_PREFIX",
   "verbose": true,
   "keepRules": {
@@ -290,6 +396,8 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "renameLocalVariables": true,
+  "obfuscateConditions": true,
   "namingMode": "RANDOM_SHORT",
   "verbose": false,
   "keepRules": {
@@ -342,6 +450,8 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "renameLocalVariables": true,
+  "obfuscateConditions": true,
   "namingMode": "RANDOM_LONG",
   "verbose": true,
   "keepRules": {

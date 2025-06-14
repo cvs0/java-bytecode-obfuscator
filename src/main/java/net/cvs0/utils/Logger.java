@@ -126,6 +126,10 @@ public class Logger
         String timestamp = LocalDateTime.now().format(TIME_FORMATTER);
         String formattedMessage;
         
+        emoji = emoji != null ? emoji : "";
+        color = color != null ? color : "";
+        message = message != null ? message : "";
+        
         if (colorEnabled) {
             formattedMessage = String.format("%s[%s] %s %s%s%s", 
                 GRAY, timestamp, emoji, color, message, RESET);

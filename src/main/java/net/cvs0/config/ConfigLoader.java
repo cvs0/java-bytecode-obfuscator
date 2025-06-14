@@ -43,6 +43,24 @@ public class ConfigLoader
             builder.renameMethods(root.get("renameMethods").asBoolean());
         }
         
+        if (root.has("renameLocalVariables")) {
+            builder.renameLocalVariables(root.get("renameLocalVariables").asBoolean());
+        }
+        
+        if (root.has("obfuscateConditions")) {
+            builder.obfuscateConditions(root.get("obfuscateConditions").asBoolean());
+        }
+        
+        if (root.has("namingMode")) {
+            String namingModeStr = root.get("namingMode").asText();
+            try {
+                NamingMode namingMode = NamingMode.valueOf(namingModeStr);
+                builder.namingMode(namingMode);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Warning: Invalid naming mode '" + namingModeStr + "', using default");
+            }
+        }
+        
         if (root.has("verbose")) {
             builder.verbose(root.get("verbose").asBoolean());
         }

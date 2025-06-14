@@ -1,0 +1,27 @@
+{
+  "mainClass": "com/example/Application",
+  "renameClasses": true,
+  "renameFields": true,
+  "renameMethods": true,
+  "renameLocalVariables": true,
+  "obfuscateConditions": true,
+  "namingMode": "RANDOM_SHORT",
+  "verbose": true,
+  "keepRules": {
+    "keepMainClass": true,
+    "keepStandardEntryPoints": true,
+    "keepClassPatterns": [
+      ".*Configuration",
+      ".*Controller",
+      ".*Entity"
+    ],
+    "keepMethodPatterns": {
+      ".*Controller": ["handle.*", "process.*"],
+      ".*Service": ["get.*", "set.*", "find.*"]
+    },
+    "keepFieldPatterns": {
+      ".*Entity": ["id", ".*Date", ".*Time"],
+      ".*Configuration": [".*"]
+    }
+  }
+}
