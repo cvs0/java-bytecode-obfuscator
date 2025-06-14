@@ -1,0 +1,17 @@
+{
+  "mainClass": "net/cvs0/Main",
+  "renameClasses": true,
+  "renameFields": true,
+  "renameMethods": true,
+  "verbose": true,
+  "keepRules": {
+    "keepMainClass": true,
+    "keepStandardEntryPoints": true,
+    "keepClassPatterns": [
+      "java/.*",
+      "javax/.*",
+      "sun/.*",
+      "com/sun/.*"
+    ]
+  }
+}

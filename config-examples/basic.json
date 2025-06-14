@@ -1,0 +1,11 @@
+{
+  "mainClass": "com/example/Main",
+  "renameClasses": true,
+  "renameFields": true,
+  "renameMethods": true,
+  "verbose": true,
+  "keepRules": {
+    "keepMainClass": true,
+    "keepStandardEntryPoints": true
+  }
+}
