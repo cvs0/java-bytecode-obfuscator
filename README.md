@@ -1,20 +1,23 @@
- # Java Bytecode Obfuscator
+# Java Bytecode Obfuscator
 
 A powerful and flexible Java bytecode obfuscator built with ASM that provides comprehensive obfuscation capabilities while maintaining fine-grained control over what gets obfuscated.
 
-## Features
+## ✨ Features
 
 ### 🔧 Core Obfuscation
 - **Class Renaming** - Rename classes to obscure names while preserving functionality
-- **Method Renaming** - Obfuscate method names with intelligent handling of constructors and special methods
+- **Method Renaming** - Obfuscate method names with intelligent handling of constructors, synthetic methods, and inheritance
 - **Field Renaming** - Rename fields while maintaining proper access relationships
+- **Local Variable Renaming** - Obfuscate local variable names for additional protection
 - **Reference Updating** - Automatically updates all references to renamed elements throughout the codebase
+- **Inheritance-Aware Renaming** - Properly handles interface implementations and method overrides
 
 ### 🎯 Advanced Configuration
 - **Keep Rules System** - Sophisticated rules for preserving specific classes, methods, and fields
 - **Pattern Matching** - Use regex patterns to define keep rules for multiple elements at once
 - **Granular Control** - Specify exactly what to keep at the class, method, and field level
-- **Configuration Presets** - Pre-built configurations for common scenarios (Spring Boot, libraries, etc.)
+- **Configuration Files** - JSON-based configuration with presets for common scenarios
+- **Command Line Interface** - Full-featured CLI with extensive options
 
 ### 🔄 Extensible Architecture
 - **Transformer Pipeline** - Modular transformer system with priority-based execution
@@ -22,37 +25,49 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Plugin System** - Add new transformers without modifying core code
 - **Context Sharing** - Transformers can share data and coordinate operations
 
-### 📊 Analysis & Debugging
+### 📊 Enhanced Logging & Analysis
+- **Rich Console Output** - Beautiful logging with emojis and color coding
+- **Timestamped Logs** - All operations are timestamped for debugging
+- **Progress Tracking** - Visual progress indicators and statistics
 - **Mapping Generation** - Generate detailed mappings of original to obfuscated names
-- **Verbose Logging** - Detailed logging of all transformations performed
+- **Verbose Mode** - Detailed logging of all transformations performed
 - **Validation System** - Comprehensive validation with warnings and error detection
-- **Progress Reporting** - Track obfuscation progress and statistics
 
-## Quick Start
+### 🛠️ Smart Handling
+- **Method References** - Properly handles Java 8+ method references (::) in lambda expressions
+- **Synthetic Methods** - Intelligently handles compiler-generated synthetic methods
+- **Bridge Methods** - Correct handling of bridge methods in inheritance hierarchies
+- **Entry Point Protection** - Automatic preservation of main methods and constructors
+- **JAR Structure** - Preserves non-class files (resources, manifests, etc.)
 
-### Command Line Usage
+## 🚀 Quick Start
+
+### Installation
+
+Download the latest release or build from source:
 
 ```bash
-# Basic obfuscation with defaults
-java -jar obfuscator.jar input.jar output.jar
+git clone https://github.com/cvs0/java-bytecode-obfuscator.git
+cd java-bytecode-obfuscator
+./gradlew build
+```
 
-# Using configuration file
-java -jar obfuscator.jar -c config.json input.jar output.jar
+### Basic Usage
 
-# Command line options
-java -jar obfuscator.jar input.jar output.jar \
-  --main-class com/example/Main \
-  --keep-main-class \
-  --keep-entry-points \
-  --verbose
+```bash
+# Simple obfuscation with all features enabled
+java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
+  --rename-classes --rename-methods --rename-fields --rename-local-variables
 
-# Generate mappings
-java -jar obfuscator.jar input.jar output.jar --mappings mappings.txt
+# With main class protection
+java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
+  -m com.example.Main --keep-main-class --keep-entry-points \
+  --rename-classes --rename-methods --rename-fields --rename-local-variables
 
-# Keep specific classes
-java -jar obfuscator.jar input.jar output.jar \
-  --keep-class "com/example/api/PublicAPI" \
-  --keep-class-pattern ".*Controller"
+# Generate mappings for debugging
+java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
+  --mappings mappings.txt --verbose \
+  --rename-classes --rename-methods --rename-fields --rename-local-variables
 ```
 
 ### Configuration File
