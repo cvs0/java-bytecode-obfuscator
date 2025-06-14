@@ -6,6 +6,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import net.cvs0.config.ObfuscationConfig;
 import net.cvs0.config.ConfigLoader;
+import net.cvs0.config.NamingMode;
 import net.cvs0.utils.Logger;
 
 import java.io.File;
@@ -58,6 +59,15 @@ public class Main implements Callable<Integer>
     @Option(names = {"--keep-entry-points"}, description = "Keep standard entry points (main methods, constructors)")
     private boolean keepStandardEntryPoints;
 
+    @Option(names = {"--naming-mode", "-n"}, 
+            description = "Name generation mode (default: SEQUENTIAL_PREFIX):%n" +
+                         "  SEQUENTIAL_PREFIX - Sequential with prefix (a1, a2, a3...)%n" +
+                         "  SEQUENTIAL_ALPHA - Sequential alphabetic (a, b, c... aa, ab, ac...)%n" +
+                         "  RANDOM_SHORT - Random short names (abcd, xyzk, mnop...)%n" +
+                         "  RANDOM_LONG - Random long names (highly obfuscated)%n" +
+                         "  SINGLE_CHAR - Single character names (a, b, c...)")
+    private NamingMode namingMode;
+
     public static void main(String[] args)
     {
         int exitCode = new CommandLine(new Main()).execute(args);
@@ -82,6 +92,7 @@ public class Main implements Callable<Integer>
                 if (mappingsFile != null) {
                     System.out.println("Mappings file: " + mappingsFile.getAbsolutePath());
                 }
+                System.out.println("Naming mode: " + config.getNamingMode().name() + " - " + config.getNamingMode().getDescription());
                 System.out.println();
             }
 
@@ -167,6 +178,10 @@ public class Main implements Callable<Integer>
         
         if (keepStandardEntryPoints) {
             builder.keepStandardEntryPoints();
+        }
+        
+        if (namingMode != null) {
+            builder.namingMode(namingMode);
         }
         
         if (configFile == null && renameClasses == null && renameFields == null && renameMethods == null && renameLocalVariables == null) {

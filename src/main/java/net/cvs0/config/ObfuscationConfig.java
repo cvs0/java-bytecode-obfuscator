@@ -13,6 +13,7 @@ public class ObfuscationConfig
     private final boolean verbose;
     private final KeepRules keepRules;
     private final String packageScope;
+    private final NamingMode namingMode;
 
     public ObfuscationConfig(
             String mainClass,
@@ -22,7 +23,8 @@ public class ObfuscationConfig
             boolean renameLocalVariables,
             boolean verbose,
             KeepRules keepRules,
-            String packageScope)
+            String packageScope,
+            NamingMode namingMode)
     {
         this.mainClass = mainClass;
         this.renameClasses = renameClasses;
@@ -32,6 +34,7 @@ public class ObfuscationConfig
         this.verbose = verbose;
         this.keepRules = keepRules != null ? keepRules : new KeepRules();
         this.packageScope = packageScope;
+        this.namingMode = namingMode != null ? namingMode : NamingMode.SEQUENTIAL_PREFIX;
     }
 
     public String getMainClass()
@@ -67,6 +70,11 @@ public class ObfuscationConfig
     public String getPackageScope()
     {
         return packageScope;
+    }
+    
+    public NamingMode getNamingMode()
+    {
+        return namingMode;
     }
     
     public KeepRules getKeepRules()
@@ -221,6 +229,7 @@ public class ObfuscationConfig
         private boolean verbose = false;
         private final KeepRules keepRules = new KeepRules();
         private String packageScope;
+        private NamingMode namingMode = NamingMode.SEQUENTIAL_PREFIX;
         
         public Builder mainClass(String mainClass)
         {
@@ -265,6 +274,12 @@ public class ObfuscationConfig
         public Builder verbose(boolean verbose)
         {
             this.verbose = verbose;
+            return this;
+        }
+        
+        public Builder namingMode(NamingMode namingMode)
+        {
+            this.namingMode = namingMode;
             return this;
         }
         
@@ -340,7 +355,7 @@ public class ObfuscationConfig
         
         public ObfuscationConfig build()
         {
-            return new ObfuscationConfig(mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, verbose, keepRules, packageScope);
+            return new ObfuscationConfig(mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, verbose, keepRules, packageScope, namingMode);
         }
     }
 }

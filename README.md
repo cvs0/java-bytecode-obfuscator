@@ -11,6 +11,7 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Local Variable Renaming** - Obfuscate local variable names for additional protection
 - **Reference Updating** - Automatically updates all references to renamed elements throughout the codebase
 - **Inheritance-Aware Renaming** - Properly handles interface implementations and method overrides
+- **Multiple Naming Modes** - Choose from sequential, alphabetic, random short/long, or single character naming schemes
 
 ### 🎯 Advanced Configuration
 - **Keep Rules System** - Sophisticated rules for preserving specific classes, methods, and fields
@@ -68,6 +69,14 @@ java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
   --mappings mappings.txt --verbose \
   --rename-classes --rename-methods --rename-fields --rename-local-variables
+
+# Use different naming modes
+java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
+  --naming-mode RANDOM_SHORT --rename-classes --rename-methods --rename-fields
+
+java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
+  --naming-mode SEQUENTIAL_ALPHA --verbose \
+  --rename-classes --rename-methods --rename-fields --rename-local-variables
 ```
 
 ### Configuration File
@@ -80,6 +89,7 @@ Create a JSON configuration file for complex scenarios:
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "namingMode": "RANDOM_SHORT",
   "verbose": true,
   "keepRules": {
     "keepMainClass": true,
@@ -107,6 +117,7 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameClasses(true)
     .renameFields(true)
     .renameMethods(true)
+    .namingMode(NamingMode.RANDOM_SHORT)
     .verbose(true)
     
     // Keep specific classes
@@ -132,6 +143,57 @@ Obfuscator obfuscator = new Obfuscator();
 obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile);
 ```
 
+## Naming Modes
+
+The obfuscator supports multiple naming modes to generate obfuscated names:
+
+### Available Modes
+
+| Mode | Description | Example Output |
+|------|-------------|----------------|
+| `SEQUENTIAL_PREFIX` | Sequential with prefix (default) | `a1`, `a2`, `a3`, `m1`, `m2`, `f1`, `f2` |
+| `SEQUENTIAL_ALPHA` | Sequential alphabetic | `a`, `b`, `c`, `aa`, `ab`, `ac` |
+| `RANDOM_SHORT` | Random short names (4 characters) | `abcd`, `xyzk`, `mnop`, `qrst` |
+| `RANDOM_LONG` | Random long names (8-16 characters) | `abcdefgh`, `xyzklmnopqrs` |
+| `SINGLE_CHAR` | Single character names | `a`, `b`, `c`, then falls back to `a1`, `a2` |
+
+### Usage Examples
+
+```bash
+# Use random short names for maximum obfuscation
+java -jar obfuscator.jar input.jar output.jar --naming-mode RANDOM_SHORT
+
+# Use single character names for minimal size
+java -jar obfuscator.jar input.jar output.jar --naming-mode SINGLE_CHAR
+
+# Use alphabetic sequence for readability in testing
+java -jar obfuscator.jar input.jar output.jar --naming-mode SEQUENTIAL_ALPHA
+```
+
+### Configuration File
+
+```json
+{
+  "namingMode": "RANDOM_SHORT",
+  "renameClasses": true,
+  "renameFields": true,
+  "renameMethods": true
+}
+```
+
+### Programmatic Usage
+
+```java
+import net.cvs0.config.NamingMode;
+
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .namingMode(NamingMode.RANDOM_LONG)
+    .renameClasses(true)
+    .renameFields(true)
+    .renameMethods(true)
+    .build();
+```
+
 ## CLI Reference
 
 ### Command Line Options
@@ -149,6 +211,9 @@ Options:
       --rename-classes        Enable class renaming
       --rename-fields         Enable field renaming  
       --rename-methods        Enable method renaming
+      --rename-local-variables Enable local variable renaming
+  -n, --naming-mode <mode>    Name generation mode (SEQUENTIAL_PREFIX, SEQUENTIAL_ALPHA, 
+                              RANDOM_SHORT, RANDOM_LONG, SINGLE_CHAR)
       --mappings <file>       Output mappings file
   -v, --verbose               Enable verbose output
       --keep-class <class>    Keep specific class (repeatable)
@@ -184,9 +249,19 @@ java -jar obfuscator.jar input.jar output.jar \
 # Generate mappings
 java -jar obfuscator.jar input.jar output.jar --mappings mappings.txt
 
+# Use different naming modes
+java -jar obfuscator.jar input.jar output.jar \
+  --naming-mode RANDOM_LONG \
+  --rename-classes --rename-methods --rename-fields
+
+java -jar obfuscator.jar input.jar output.jar \
+  --naming-mode SINGLE_CHAR \
+  --verbose
+
 # Override config file settings
 java -jar obfuscator.jar -c config.json input.jar output.jar \
   --rename-classes false \
+  --naming-mode SEQUENTIAL_ALPHA \
   --verbose
 ```
 
@@ -199,6 +274,7 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "namingMode": "SEQUENTIAL_PREFIX",
   "verbose": true,
   "keepRules": {
     "keepMainClass": true,
@@ -214,6 +290,7 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "namingMode": "RANDOM_SHORT",
   "verbose": false,
   "keepRules": {
     "keepMainClass": true,
@@ -241,6 +318,7 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": false,
   "renameFields": true,
   "renameMethods": false,
+  "namingMode": "SINGLE_CHAR",
   "verbose": false,
   "keepRules": {
     "keepStandardEntryPoints": true,
@@ -264,6 +342,7 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "namingMode": "RANDOM_LONG",
   "verbose": true,
   "keepRules": {
     "keepMainClass": true,
@@ -402,14 +481,42 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameClasses(false)
     .renameFields(true)      // Only obfuscate fields
     .renameMethods(false)
+    .namingMode(NamingMode.SINGLE_CHAR)
     .keepStandardEntryPoints()
     .build();
 ```
 
 ### Aggressive Obfuscation
 ```java
-ObfuscationConfig config = ConfigPresets.createAggressiveObfuscation()
-    .build(); // Minimal keep rules for maximum obfuscation
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .renameClasses(true)
+    .renameFields(true)
+    .renameMethods(true)
+    .renameLocalVariables(true)
+    .namingMode(NamingMode.RANDOM_LONG)
+    .keepStandardEntryPoints()  // Minimal keep rules for maximum obfuscation
+    .build();
+```
+
+### Different Naming Modes
+```java
+// Sequential with prefix (default)
+ObfuscationConfig config1 = new ObfuscationConfig.Builder()
+    .namingMode(NamingMode.SEQUENTIAL_PREFIX)
+    .renameClasses(true)
+    .build();
+
+// Random short names for good obfuscation
+ObfuscationConfig config2 = new ObfuscationConfig.Builder()
+    .namingMode(NamingMode.RANDOM_SHORT)
+    .renameClasses(true)
+    .build();
+
+// Single character for minimal size
+ObfuscationConfig config3 = new ObfuscationConfig.Builder()
+    .namingMode(NamingMode.SINGLE_CHAR)
+    .renameClasses(true)
+    .build();
 ```
 
 ### Framework-Specific Configurations
@@ -420,6 +527,7 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameClasses(true)
     .renameFields(true)
     .renameMethods(true)
+    .namingMode(NamingMode.RANDOM_SHORT)
     .keepClassPattern(".*Configuration")
     .keepClassPattern(".*Controller")
     .keepClassMethodPattern(".*Component", ".*")
@@ -434,6 +542,7 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameClasses(true)
     .renameFields(true)
     .renameMethods(true)
+    .namingMode(NamingMode.SEQUENTIAL_ALPHA)
     .keepClassPattern(".*Activity")
     .keepClassPattern(".*Service")
     .keepClassPattern(".*BroadcastReceiver")
@@ -549,6 +658,12 @@ ObfuscationConfig config = ConfigPresets.createDebugObfuscation()
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 1.1.0
+- Added multiple naming modes (SEQUENTIAL_PREFIX, SEQUENTIAL_ALPHA, RANDOM_SHORT, RANDOM_LONG, SINGLE_CHAR)
+- Enhanced CLI with naming mode selection
+- Updated configuration file format to support naming modes
+- Improved local variable renaming with configurable naming modes
 
 ### Version 1.0.0
 - Initial release with class, method, and field renaming

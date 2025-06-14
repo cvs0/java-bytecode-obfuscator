@@ -3,6 +3,7 @@
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "namingMode": "RANDOM_SHORT",
   "verbose": false,
   "keepRules": {
     "keepMainClass": true,

@@ -90,7 +90,27 @@ public class ObfuscationContext
     
     public MapBasedRenamer getRenamer(String type)
     {
-        return renamers.computeIfAbsent(type, k -> new MapBasedRenamer());
+        return renamers.computeIfAbsent(type, k -> {
+            String prefix = getDefaultPrefix(type);
+            return new MapBasedRenamer(prefix, config);
+        });
+    }
+    
+    private String getDefaultPrefix(String type)
+    {
+        switch (type.toLowerCase()) {
+            case "class":
+                return "a";
+            case "field":
+                return "f";
+            case "method":
+                return "m";
+            case "localvar":
+            case "local":
+                return "v";
+            default:
+                return "a";
+        }
     }
     
     public void setRenamer(String type, MapBasedRenamer renamer)

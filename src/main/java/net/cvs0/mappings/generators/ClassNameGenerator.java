@@ -2,24 +2,22 @@ package net.cvs0.mappings.generators;
 
 import net.cvs0.config.ObfuscationConfig;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
-public class ClassNameGenerator
+public class ClassNameGenerator extends BaseNameGenerator
 {
-    private final AtomicInteger counter = new AtomicInteger(0);
     private final String packageScope;
-    private final String prefix;
     
     public ClassNameGenerator(ObfuscationConfig config)
     {
+        super("a", config);
         this.packageScope = config.getPackageScope();
-        this.prefix = "a";
     }
     
     public String generateName(String originalClassName)
     {
+        String baseName = generateBaseName();
+        
         if (packageScope == null || packageScope.isEmpty()) {
-            return prefix + counter.incrementAndGet();
+            return baseName;
         }
         
         if (originalClassName.startsWith(packageScope + "/")) {
@@ -27,20 +25,17 @@ public class ClassNameGenerator
             int lastSlash = relativePath.lastIndexOf('/');
             if (lastSlash != -1) {
                 String packagePart = relativePath.substring(0, lastSlash);
-                String simpleName = prefix + counter.incrementAndGet();
-                return packageScope + "/" + packagePart + "/" + simpleName;
+                return packageScope + "/" + packagePart + "/" + baseName;
             } else {
-                String simpleName = prefix + counter.incrementAndGet();
-                return packageScope + "/" + simpleName;
+                return packageScope + "/" + baseName;
             }
         } else {
             int lastSlash = originalClassName.lastIndexOf('/');
             if (lastSlash != -1) {
                 String packagePart = originalClassName.substring(0, lastSlash);
-                String simpleName = prefix + counter.incrementAndGet();
-                return packagePart + "/" + simpleName;
+                return packagePart + "/" + baseName;
             } else {
-                return prefix + counter.incrementAndGet();
+                return baseName;
             }
         }
     }

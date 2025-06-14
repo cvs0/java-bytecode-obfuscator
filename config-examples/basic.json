@@ -3,6 +3,7 @@
   "renameClasses": true,
   "renameFields": true,
   "renameMethods": true,
+  "namingMode": "SEQUENTIAL_PREFIX",
   "verbose": true,
   "keepRules": {
     "keepMainClass": true,

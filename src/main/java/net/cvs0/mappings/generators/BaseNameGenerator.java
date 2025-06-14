@@ -1,55 +1,25 @@
-package net.cvs0.mappings.remappers;
+package net.cvs0.mappings.generators;
 
 import net.cvs0.config.NamingMode;
 import net.cvs0.config.ObfuscationConfig;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MapBasedRenamer
+public abstract class BaseNameGenerator
 {
-    private final Map<String, String> mappings = new HashMap<>();
-    private final AtomicInteger counter = new AtomicInteger(0);
-    private final String prefix;
-    private final NamingMode namingMode;
-    private final Random random = new Random();
+    protected final NamingMode namingMode;
+    protected final AtomicInteger counter = new AtomicInteger(0);
+    protected final Random random = new Random();
+    protected final String prefix;
     
-    public MapBasedRenamer()
-    {
-        this("a", NamingMode.SEQUENTIAL_PREFIX);
-    }
-    
-    public MapBasedRenamer(String prefix)
-    {
-        this(prefix, NamingMode.SEQUENTIAL_PREFIX);
-    }
-    
-    public MapBasedRenamer(String prefix, NamingMode namingMode)
+    protected BaseNameGenerator(String prefix, ObfuscationConfig config)
     {
         this.prefix = prefix;
-        this.namingMode = namingMode != null ? namingMode : NamingMode.SEQUENTIAL_PREFIX;
+        this.namingMode = config.getNamingMode();
     }
     
-    public MapBasedRenamer(String prefix, ObfuscationConfig config)
-    {
-        this.prefix = prefix;
-        this.namingMode = config != null ? config.getNamingMode() : NamingMode.SEQUENTIAL_PREFIX;
-    }
-    
-    public String generateName(String original)
-    {
-        if (mappings.containsKey(original)) {
-            return mappings.get(original);
-        }
-        
-        String newName = generateBaseName();
-        mappings.put(original, newName);
-        return newName;
-    }
-    
-    private String generateBaseName()
+    protected String generateBaseName()
     {
         switch (namingMode) {
             case SEQUENTIAL_PREFIX:
@@ -102,25 +72,5 @@ public class MapBasedRenamer
         } else {
             return prefix + (index - 26);
         }
-    }
-    
-    public String getName(String original)
-    {
-        return mappings.get(original);
-    }
-    
-    public void addMapping(String original, String obfuscated)
-    {
-        mappings.put(original, obfuscated);
-    }
-    
-    public Map<String, String> getMappings()
-    {
-        return new HashMap<>(mappings);
-    }
-    
-    public boolean hasMappingFor(String original)
-    {
-        return mappings.containsKey(original);
     }
 }

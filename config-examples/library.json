@@ -2,6 +2,7 @@
   "renameClasses": false,
   "renameFields": true,
   "renameMethods": false,
+  "namingMode": "SINGLE_CHAR",
   "verbose": false,
   "keepRules": {
     "keepStandardEntryPoints": true,
