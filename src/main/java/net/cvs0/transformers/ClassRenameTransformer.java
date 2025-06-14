@@ -23,6 +23,17 @@ public class ClassRenameTransformer extends AbstractTransformer
         }
         
         String className = reader.getClassName();
+        if (className == null) {
+            try {
+                logTransformation("ClassReader returned null className. Reader info - access: " + reader.getAccess() + 
+                    ", superName: " + reader.getSuperName() + ", interfaces: " + java.util.Arrays.toString(reader.getInterfaces()), context);
+            } catch (Exception e) {
+                logTransformation("ClassReader returned null className and failed to get additional info: " + e.getMessage(), context);
+            }
+            reader.accept(writer, 0);
+            return;
+        }
+        
         GlobalRemapper globalRemapper = new GlobalRemapper(context.getMappingManager());
         ClassRemapper remapper = new ClassRemapper(writer, globalRemapper);
         

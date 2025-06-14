@@ -109,11 +109,11 @@ public class LocalVariableRenameTransformer extends AbstractTransformer
                 return false;
             }
             
-            if (name.equals("this")) {
+            if (name != null && name.equals("this")) {
                 return false;
             }
             
-            if (name.startsWith("$")) {
+            if (name != null && name.startsWith("$")) {
                 return false;
             }
             
@@ -126,11 +126,11 @@ public class LocalVariableRenameTransformer extends AbstractTransformer
                 return false;
             }
             
-            if (name.equals("this")) {
+            if (name != null && name.equals("this")) {
                 return false;
             }
             
-            if (name.startsWith("$")) {
+            if (name != null && name.startsWith("$")) {
                 return false;
             }
             

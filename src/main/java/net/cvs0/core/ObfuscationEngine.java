@@ -84,18 +84,39 @@ public class ObfuscationEngine
             byte[] classBytes = entry.getValue();
             
             ClassReader reader = new ClassReader(classBytes);
-            ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+            String actualClassName = reader.getClassName();
+            
+            boolean shouldProcess = shouldProcessClass(actualClassName, config);
+            if (!shouldProcess) {
+                result.put(className, classBytes);
+                continue;
+            }
+            
+            ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
             
             ClassReader currentReader = reader;
             ClassWriter currentWriter = writer;
             
             for (Transformer transformer : transformers) {
                 if (transformer.isEnabled(context)) {
-                    ClassWriter nextWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+                    ClassWriter nextWriter = new ClassWriter(currentReader, ClassWriter.COMPUTE_MAXS);
                     transformer.transform(currentReader, nextWriter, context);
                     
-                    currentReader = new ClassReader(nextWriter.toByteArray());
-                    currentWriter = nextWriter;
+                    byte[] transformedBytes = nextWriter.toByteArray();
+                    
+                    try {
+                        ClassReader testReader = new ClassReader(transformedBytes);
+                        String testClassName = testReader.getClassName();
+                        if (testClassName == null) {
+                            System.err.println("Transformer " + transformer.getName() + " produced invalid bytecode for class " + className + " - skipping further transformations");
+                            break;
+                        }
+                        currentReader = testReader;
+                        currentWriter = nextWriter;
+                    } catch (Exception e) {
+                        System.err.println("Transformer " + transformer.getName() + " produced malformed bytecode for class " + className + ": " + e.getMessage() + " - skipping further transformations");
+                        break;
+                    }
                 }
             }
             
@@ -113,23 +134,42 @@ public class ObfuscationEngine
         mappingManager.setInheritanceTracker(inheritanceTracker);
         
         for (Map.Entry<String, byte[]> entry : inputClasses.entrySet()) {
-            ClassReader reader = new ClassReader(entry.getValue());
-            net.cvs0.discovery.InheritanceDiscoveryVisitor inheritanceVisitor = new net.cvs0.discovery.InheritanceDiscoveryVisitor(inheritanceTracker);
-            reader.accept(inheritanceVisitor, ClassReader.SKIP_CODE);
+            try {
+                ClassReader reader = new ClassReader(entry.getValue());
+                if (reader.getClassName() != null) {
+                    net.cvs0.discovery.InheritanceDiscoveryVisitor inheritanceVisitor = new net.cvs0.discovery.InheritanceDiscoveryVisitor(inheritanceTracker);
+                    reader.accept(inheritanceVisitor, ClassReader.SKIP_CODE);
+                }
+            } catch (Exception e) {
+                System.err.println("Skipping class during inheritance discovery: " + entry.getKey() + " - " + e.getMessage());
+            }
         }
         
         Set<String> classNames = new HashSet<>();
         for (String className : inputClasses.keySet()) {
-            ClassReader reader = new ClassReader(inputClasses.get(className));
-            classNames.add(reader.getClassName());
+            try {
+                ClassReader reader = new ClassReader(inputClasses.get(className));
+                String readerClassName = reader.getClassName();
+                if (readerClassName != null) {
+                    classNames.add(readerClassName);
+                }
+            } catch (Exception e) {
+                System.err.println("Skipping class during name collection: " + className + " - " + e.getMessage());
+            }
         }
         
         mappingManager.generateClassMappings(classNames);
         
         for (Map.Entry<String, byte[]> entry : inputClasses.entrySet()) {
-            ClassReader reader = new ClassReader(entry.getValue());
-            net.cvs0.discovery.ClassDiscoveryVisitor discoveryVisitor = new net.cvs0.discovery.ClassDiscoveryVisitor(mappingManager, inheritanceTracker);
-            reader.accept(discoveryVisitor, ClassReader.SKIP_CODE);
+            try {
+                ClassReader reader = new ClassReader(entry.getValue());
+                if (reader.getClassName() != null) {
+                    net.cvs0.discovery.ClassDiscoveryVisitor discoveryVisitor = new net.cvs0.discovery.ClassDiscoveryVisitor(mappingManager, inheritanceTracker);
+                    reader.accept(discoveryVisitor, ClassReader.SKIP_CODE);
+                }
+            } catch (Exception e) {
+                System.err.println("Skipping class during discovery: " + entry.getKey() + " - " + e.getMessage());
+            }
         }
         
         context.setMappingManager(mappingManager);
@@ -180,8 +220,16 @@ public class ObfuscationEngine
                 .forEach(entry -> {
                     try (InputStream inputStream = jarFile.getInputStream(entry)) {
                         byte[] classBytes = inputStream.readAllBytes();
-                        String className = entry.getName().substring(0, entry.getName().length() - 6);
-                        classes.put(className, classBytes);
+                        
+                        try {
+                            ClassReader testReader = new ClassReader(classBytes);
+                            String className = testReader.getClassName();
+                            if (className != null && !className.isEmpty()) {
+                                classes.put(className, classBytes);
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Skipping invalid class file: " + entry.getName() + " - " + e.getMessage());
+                        }
                     } catch (IOException e) {
                         throw new RuntimeException("Failed to read class: " + entry.getName(), e);
                     }
@@ -189,6 +237,20 @@ public class ObfuscationEngine
         }
         
         return classes;
+    }
+    
+    private boolean shouldProcessClass(String className, ObfuscationConfig config)
+    {
+        if (className == null) {
+            return false;
+        }
+        
+        String packageScope = config.getPackageScope();
+        if (packageScope != null && !packageScope.isEmpty()) {
+            return className.startsWith(packageScope);
+        }
+        
+        return true;
     }
     
     private void writeObfuscatedJar(File inputJar, File outputJar, Map<String, byte[]> obfuscatedClasses) throws IOException
