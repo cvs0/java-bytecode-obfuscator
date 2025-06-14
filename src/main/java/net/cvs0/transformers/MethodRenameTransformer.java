@@ -3,6 +3,7 @@ package net.cvs0.transformers;
 import net.cvs0.context.ObfuscationContext;
 import net.cvs0.core.AbstractTransformer;
 import net.cvs0.mappings.remappers.MapBasedRenamer;
+import net.cvs0.utils.Logger;
 import org.objectweb.asm.*;
 
 public class MethodRenameTransformer extends AbstractTransformer
@@ -64,7 +65,7 @@ public class MethodRenameTransformer extends AbstractTransformer
             String methodKey = currentClassName + "." + name + descriptor;
             
             if (context.getConfig().shouldKeepMethod(currentClassName, name, descriptor)) {
-                logTransformation("Keeping method: " + methodKey, context);
+                Logger.debug("Keeping method: " + methodKey);
                 MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
                 return new MethodCallRenameVisitor(mv, context, currentClassName);
             }
@@ -74,7 +75,7 @@ public class MethodRenameTransformer extends AbstractTransformer
                 MapBasedRenamer renamer = context.getRenamer("method");
                 newName = renamer.generateName(methodKey);
                 context.addMethodMapping(methodKey, newName);
-                logTransformation("Renaming method: " + methodKey + " -> " + newName, context);
+                Logger.mapping(methodKey, newName);
             }
             
             MethodVisitor mv = super.visitMethod(access, newName, descriptor, signature, exceptions);

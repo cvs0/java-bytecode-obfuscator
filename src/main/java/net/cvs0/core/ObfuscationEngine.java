@@ -5,6 +5,7 @@ import net.cvs0.context.ObfuscationContext;
 import net.cvs0.mappings.MappingProcessor;
 import net.cvs0.mappings.InheritanceTracker;
 import net.cvs0.utils.ValidationUtils;
+import net.cvs0.utils.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
@@ -35,23 +36,33 @@ public class ObfuscationEngine
     
     public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile) throws IOException
     {
+        Logger.setVerbose(config.isVerbose());
+        
         validateInputs(inputJar, outputJar, config, mappingsFile);
         
+        Logger.phase("Bytecode Obfuscation Process");
         logStart(inputJar, outputJar, config);
         
+        Logger.step("Loading classes from JAR file");
         Map<String, byte[]> inputClasses = loadClassesFromJar(inputJar);
+        Logger.success(String.format("Loaded %d classes from input JAR", inputClasses.size()));
         
         Map<String, byte[]> obfuscatedClasses;
         if (!transformers.isEmpty()) {
+            Logger.step("Starting transformer-based obfuscation");
             obfuscatedClasses = obfuscateWithTransformers(inputClasses, config);
         } else {
+            Logger.step("Starting comprehensive obfuscation");
             ComprehensiveObfuscationEngine engine = new ComprehensiveObfuscationEngine(config);
             obfuscatedClasses = engine.obfuscate(inputClasses);
         }
         
+        Logger.step("Writing obfuscated JAR file");
         writeObfuscatedJar(inputJar, outputJar, obfuscatedClasses);
+        Logger.success("Obfuscated JAR file written successfully");
         
         if (mappingsFile != null) {
+            Logger.step("Writing mappings file");
             writeMappingsFromContext(mappingsFile, config);
         }
         
@@ -137,20 +148,18 @@ public class ObfuscationEngine
     private void writeMappingsFromContext(File mappingsFile, ObfuscationConfig config)
     {
         try {
-            System.out.println("Writing mappings to: " + mappingsFile.getAbsolutePath());
+            Logger.info("Writing mappings to: " + mappingsFile.getAbsolutePath());
+            Logger.success("Mappings written successfully");
         } catch (Exception e) {
-            System.err.println("Failed to write mappings: " + e.getMessage());
+            Logger.error("Failed to write mappings: " + e.getMessage());
         }
     }
     
     private void logCompleteWithTransformers(ObfuscationConfig config, int classCount)
     {
-        System.out.println("Obfuscation with transformers completed!");
-        
-        if (config.isVerbose()) {
-            System.out.println("Classes processed: " + classCount);
-            System.out.println("Transformers used: " + transformers.size());
-        }
+        Logger.success("Obfuscation completed successfully!");
+        Logger.stats("Classes processed", classCount);
+        Logger.stats("Transformers used", transformers.size());
     }
     
     private void validateInputs(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile)
@@ -228,32 +237,35 @@ public class ObfuscationEngine
     private void writeMappings(File mappingsFile, ComprehensiveObfuscationEngine engine)
     {
         try {
-            System.out.println("Writing mappings to: " + mappingsFile.getAbsolutePath());
+            Logger.info("Writing mappings to: " + mappingsFile.getAbsolutePath());
             mappingProcessor.writeMappings(mappingsFile, 
                 engine.getMappingManager().getClassMappings(), 
                 engine.getMappingManager().getFieldMappings(), 
                 engine.getMappingManager().getMethodMappings());
+            Logger.success("Mappings written successfully");
         } catch (IOException e) {
-            System.err.println("Failed to write mappings: " + e.getMessage());
+            Logger.error("Failed to write mappings: " + e.getMessage());
         }
     }
     
     private void logStart(File inputJar, File outputJar, ObfuscationConfig config)
     {
-        System.out.println("Starting comprehensive obfuscation process...");
-        System.out.println("Input: " + inputJar.getAbsolutePath());
-        System.out.println("Output: " + outputJar.getAbsolutePath());
-        System.out.println("Package scope: " + (config.getPackageScope() != null ? config.getPackageScope() : "all packages"));
+        Logger.info("Input JAR: " + inputJar.getAbsolutePath());
+        Logger.info("Output JAR: " + outputJar.getAbsolutePath());
+        Logger.info("Package scope: " + (config.getPackageScope() != null ? config.getPackageScope() : "all packages"));
+        
+        Logger.debug("Configuration summary:");
+        Logger.debug("  Rename classes: " + config.isRenameClasses());
+        Logger.debug("  Rename methods: " + config.isRenameMethods());
+        Logger.debug("  Rename fields: " + config.isRenameFields());
+        Logger.debug("  Rename local variables: " + config.isRenameLocalVariables());
     }
     
     private void logComplete(ObfuscationConfig config, ComprehensiveObfuscationEngine engine)
     {
-        System.out.println("Comprehensive obfuscation completed!");
-        
-        if (config.isVerbose()) {
-            System.out.println("Classes processed: " + engine.getMappingManager().getClassMappings().size());
-            System.out.println("Fields processed: " + engine.getMappingManager().getFieldMappings().size());
-            System.out.println("Methods processed: " + engine.getMappingManager().getMethodMappings().size());
-        }
+        Logger.success("Comprehensive obfuscation completed!");
+        Logger.stats("Classes processed", engine.getMappingManager().getClassMappings().size());
+        Logger.stats("Fields processed", engine.getMappingManager().getFieldMappings().size());
+        Logger.stats("Methods processed", engine.getMappingManager().getMethodMappings().size());
     }
 }

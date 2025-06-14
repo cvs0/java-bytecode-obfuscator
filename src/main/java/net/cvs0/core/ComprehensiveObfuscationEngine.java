@@ -6,6 +6,7 @@ import net.cvs0.discovery.InheritanceDiscoveryVisitor;
 import net.cvs0.mappings.GlobalRemapper;
 import net.cvs0.mappings.MappingManager;
 import net.cvs0.mappings.InheritanceTracker;
+import net.cvs0.utils.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.commons.ClassRemapper;
@@ -52,47 +53,41 @@ public class ComprehensiveObfuscationEngine
     
     private void discoverAndGenerateMappings(Map<String, ClassReader> readers, Set<String> classNames)
     {
-        if (config.isVerbose()) {
-            System.out.println("Phase 1: Discovering classes and generating mappings...");
-        }
+        Logger.subPhase("Discovery and Mapping Generation");
         
+        Logger.step("Building inheritance hierarchy");
         InheritanceTracker inheritanceTracker = new InheritanceTracker();
         mappingManager.setInheritanceTracker(inheritanceTracker);
-        
-        if (config.isVerbose()) {
-            System.out.println("Building inheritance hierarchy...");
-        }
         
         for (ClassReader reader : readers.values()) {
             InheritanceDiscoveryVisitor inheritanceVisitor = new InheritanceDiscoveryVisitor(inheritanceTracker);
             reader.accept(inheritanceVisitor, ClassReader.SKIP_CODE);
         }
+        Logger.success("Inheritance hierarchy built successfully");
         
+        Logger.step("Generating class mappings");
         mappingManager.generateClassMappings(classNames);
+        Logger.success(String.format("Generated %d class mappings", mappingManager.getClassMappings().size()));
         
-        if (config.isVerbose()) {
-            System.out.println("Generating field and method mappings...");
-        }
-        
+        Logger.step("Generating field and method mappings");
         for (ClassReader reader : readers.values()) {
             ClassDiscoveryVisitor discoveryVisitor = new ClassDiscoveryVisitor(mappingManager, inheritanceTracker);
             reader.accept(discoveryVisitor, ClassReader.SKIP_CODE);
         }
         
-        if (config.isVerbose()) {
-            System.out.println("Generated " + mappingManager.getClassMappings().size() + " class mappings");
-            System.out.println("Generated " + mappingManager.getFieldMappings().size() + " field mappings");
-            System.out.println("Generated " + mappingManager.getMethodMappings().size() + " method mappings");
-        }
+        Logger.success("Mapping generation completed");
+        Logger.stats("Class mappings", mappingManager.getClassMappings().size());
+        Logger.stats("Field mappings", mappingManager.getFieldMappings().size());
+        Logger.stats("Method mappings", mappingManager.getMethodMappings().size());
     }
     
     private Map<String, byte[]> applyMappings(Map<String, ClassReader> readers)
     {
-        if (config.isVerbose()) {
-            System.out.println("Phase 2: Applying mappings to all classes...");
-        }
+        Logger.subPhase("Applying Mappings");
+        Logger.step("Processing classes with generated mappings");
         
         Map<String, byte[]> obfuscatedClasses = new HashMap<>();
+        int processedCount = 0;
         
         for (Map.Entry<String, ClassReader> entry : readers.entrySet()) {
             String originalName = entry.getKey();
@@ -106,11 +101,13 @@ public class ComprehensiveObfuscationEngine
             String newName = mappingManager.getClassMapping(originalName);
             obfuscatedClasses.put(newName, writer.toByteArray());
             
-            if (config.isVerbose() && !originalName.equals(newName)) {
-                System.out.println("Remapped class: " + originalName + " -> " + newName);
+            if (!originalName.equals(newName)) {
+                Logger.transformation("Processed class: " + originalName + " → " + newName);
             }
+            processedCount++;
         }
         
+        Logger.success(String.format("Successfully processed %d classes", processedCount));
         return obfuscatedClasses;
     }
     

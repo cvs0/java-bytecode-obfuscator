@@ -6,6 +6,7 @@ import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 import net.cvs0.config.ObfuscationConfig;
 import net.cvs0.config.ConfigLoader;
+import net.cvs0.utils.Logger;
 
 import java.io.File;
 import java.util.List;
@@ -87,7 +88,6 @@ public class Main implements Callable<Integer>
             Obfuscator obfuscator = new Obfuscator();
             obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile);
 
-            System.out.println("Obfuscation completed successfully!");
             return 0;
             
         } catch (Exception e) {
