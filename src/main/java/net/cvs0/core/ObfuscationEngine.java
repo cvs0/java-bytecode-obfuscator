@@ -73,7 +73,7 @@ public class ObfuscationEngine
     {
         ObfuscationContext context = new ObfuscationContext(config);
         
-        if (config.isRenameClasses()) {
+        if (config.isRenameClasses() || config.isRenameMethods() || config.isRenameFields()) {
             setupMappingManager(context, inputClasses);
         }
         

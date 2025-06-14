@@ -17,6 +17,11 @@ public class InheritanceDiscoveryVisitor extends ClassVisitor
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces)
     {
         inheritanceTracker.addClass(name, superName, interfaces);
+        
+        if ((access & Opcodes.ACC_INTERFACE) != 0) {
+            inheritanceTracker.addInterface(name);
+        }
+        
         super.visit(version, access, name, signature, superName, interfaces);
     }
 }

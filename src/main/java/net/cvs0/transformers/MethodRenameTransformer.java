@@ -72,9 +72,15 @@ public class MethodRenameTransformer extends AbstractTransformer
             
             String newName = context.getMethodMappings().get(methodKey);
             if (newName == null) {
-                MapBasedRenamer renamer = context.getRenamer("method");
-                newName = renamer.generateName(methodKey);
-                context.addMethodMapping(methodKey, newName);
+                if (context.getMappingManager() != null) {
+                    context.getMappingManager().generateMethodMapping(currentClassName, name, descriptor);
+                    newName = context.getMappingManager().getMethodMapping(currentClassName, name, descriptor);
+                    context.addMethodMapping(methodKey, newName);
+                } else {
+                    MapBasedRenamer renamer = context.getRenamer("method");
+                    newName = renamer.generateName(methodKey);
+                    context.addMethodMapping(methodKey, newName);
+                }
                 Logger.mapping(methodKey, newName);
             }
             
@@ -84,11 +90,15 @@ public class MethodRenameTransformer extends AbstractTransformer
         
         private boolean shouldSkipMethod(String name, int access)
         {
-            if (name.equals("<init>") || name.equals("<clinit>")) {
+            if (name != null && (name.equals("<init>") || name.equals("<clinit>"))) {
                 return true;
             }
             
-            if (name.startsWith("lambda$")) {
+            if (name != null && name.startsWith("lambda$")) {
+                return true;
+            }
+            
+            if (name != null && (name.equals("values") || name.equals("valueOf") || name.equals("$values"))) {
                 return true;
             }
             
@@ -100,7 +110,7 @@ public class MethodRenameTransformer extends AbstractTransformer
                 return true;
             }
             
-            if (name.equals("main") && name.contains("([Ljava/lang/String;)V")) {
+            if (name != null && name.equals("main")) {
                 return true;
             }
             
@@ -127,7 +137,13 @@ public class MethodRenameTransformer extends AbstractTransformer
             
             if (shouldRenameMethodCall(name, owner)) {
                 String methodKey = owner + "." + name + descriptor;
-                String newName = context.getMethodMappings().getOrDefault(methodKey, name);
+                String newName = context.getMethodMappings().get(methodKey);
+                if (newName == null && context.getMappingManager() != null) {
+                    newName = context.getMappingManager().getMethodMapping(owner, name, descriptor);
+                }
+                if (newName == null) {
+                    newName = name;
+                }
                 super.visitMethodInsn(opcode, mappedOwner, newName, descriptor, isInterface);
             } else {
                 super.visitMethodInsn(opcode, mappedOwner, name, descriptor, isInterface);
@@ -149,7 +165,13 @@ public class MethodRenameTransformer extends AbstractTransformer
                     
                     if (shouldRenameMethodCall(methodName, owner)) {
                         String methodKey = owner + "." + methodName + methodDesc;
-                        String newMethodName = context.getMethodMappings().getOrDefault(methodKey, methodName);
+                        String newMethodName = context.getMethodMappings().get(methodKey);
+                        if (newMethodName == null && context.getMappingManager() != null) {
+                            newMethodName = context.getMappingManager().getMethodMapping(owner, methodName, methodDesc);
+                        }
+                        if (newMethodName == null) {
+                            newMethodName = methodName;
+                        }
                         String mappedOwner = context.getClassMappings().getOrDefault(owner, owner);
                         
                         newArgs[i] = new Handle(handle.getTag(), mappedOwner, newMethodName, methodDesc, handle.isInterface());
@@ -167,11 +189,15 @@ public class MethodRenameTransformer extends AbstractTransformer
         
         private boolean shouldRenameMethodCall(String name, String owner)
         {
-            if (name.equals("<init>") || name.equals("<clinit>")) {
+            if (name != null && (name.equals("<init>") || name.equals("<clinit>"))) {
                 return false;
             }
             
-            if (name.startsWith("lambda$")) {
+            if (name != null && name.startsWith("lambda$")) {
+                return false;
+            }
+            
+            if (name != null && (name.equals("values") || name.equals("valueOf") || name.equals("$values"))) {
                 return false;
             }
             

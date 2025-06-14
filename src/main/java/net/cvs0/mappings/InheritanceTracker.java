@@ -8,6 +8,7 @@ public class InheritanceTracker
     private final Map<String, Set<String>> classInterfaces = new HashMap<>();
     private final Map<String, String> classSuperClass = new HashMap<>();
     private final Map<String, Set<String>> classSubClasses = new HashMap<>();
+    private final Set<String> interfaceClasses = new HashSet<>();
     
     public void addClass(String className, String superClass, String[] interfaces)
     {
@@ -80,8 +81,13 @@ public class InheritanceTracker
         return result;
     }
     
+    public void addInterface(String interfaceName)
+    {
+        interfaceClasses.add(interfaceName);
+    }
+    
     public boolean isInterface(String className)
     {
-        return interfaceImplementors.containsKey(className);
+        return interfaceClasses.contains(className);
     }
 }

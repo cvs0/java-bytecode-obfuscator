@@ -22,6 +22,11 @@ public class ClassDiscoveryVisitor extends ClassVisitor
     {
         this.currentClassName = name;
         inheritanceTracker.addClass(name, superName, interfaces);
+        
+        if ((access & Opcodes.ACC_INTERFACE) != 0) {
+            inheritanceTracker.addInterface(name);
+        }
+        
         super.visit(version, access, name, signature, superName, interfaces);
     }
     

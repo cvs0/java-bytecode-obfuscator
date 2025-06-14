@@ -6,6 +6,7 @@ import net.cvs0.mappings.generators.FieldNameGenerator;
 import net.cvs0.mappings.generators.MethodNameGenerator;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -42,6 +43,10 @@ public class MappingManager
     
     public void generateFieldMapping(String owner, String fieldName, String descriptor)
     {
+        if (fieldName == null) {
+            return;
+        }
+        
         if (shouldRenameField(owner, fieldName)) {
             String key = owner + "." + fieldName;
             String newName = fieldNameGenerator.generateName(owner, fieldName, descriptor);
@@ -56,6 +61,10 @@ public class MappingManager
     
     public void generateMethodMapping(String owner, String methodName, String descriptor)
     {
+        if (methodName == null) {
+            return;
+        }
+        
         if (shouldRenameMethod(owner, methodName, descriptor)) {
             String key = owner + "." + methodName + descriptor;
             
@@ -72,20 +81,32 @@ public class MappingManager
     
     private void propagateMethodRename(String owner, String methodName, String descriptor, String newName)
     {
+        Set<String> allRelatedClasses = new HashSet<>();
+        
         if (inheritanceTracker.isInterface(owner)) {
-            Set<String> implementors = inheritanceTracker.getImplementorsOf(owner);
-            for (String implementor : implementors) {
-                String implKey = implementor + "." + methodName + descriptor;
-                if (!methodMappings.containsKey(implKey)) {
-                    methodMappings.put(implKey, newName);
-                }
-            }
+            allRelatedClasses.addAll(inheritanceTracker.getImplementorsOf(owner));
         } else {
-            Set<String> subclasses = inheritanceTracker.getAllSubclasses(owner);
-            for (String subclass : subclasses) {
-                String subKey = subclass + "." + methodName + descriptor;
-                if (!methodMappings.containsKey(subKey)) {
-                    methodMappings.put(subKey, newName);
+            allRelatedClasses.addAll(inheritanceTracker.getAllSubclasses(owner));
+            allRelatedClasses.addAll(inheritanceTracker.getAllSuperclasses(owner));
+            allRelatedClasses.addAll(inheritanceTracker.getAllInterfaces(owner));
+        }
+        
+        for (String relatedClass : allRelatedClasses) {
+            String relatedKey = relatedClass + "." + methodName + descriptor;
+            if (!methodMappings.containsKey(relatedKey)) {
+                methodMappings.put(relatedKey, newName);
+            }
+        }
+        
+        if (!inheritanceTracker.isInterface(owner)) {
+            Set<String> interfaces = inheritanceTracker.getAllInterfaces(owner);
+            for (String iface : interfaces) {
+                Set<String> implementors = inheritanceTracker.getImplementorsOf(iface);
+                for (String implementor : implementors) {
+                    String implKey = implementor + "." + methodName + descriptor;
+                    if (!methodMappings.containsKey(implKey)) {
+                        methodMappings.put(implKey, newName);
+                    }
                 }
             }
         }
@@ -93,17 +114,26 @@ public class MappingManager
     
     public String getClassMapping(String className)
     {
+        if (className == null) {
+            return null;
+        }
         return classMappings.getOrDefault(className, className);
     }
     
     public String getFieldMapping(String owner, String fieldName)
     {
+        if (fieldName == null) {
+            return null;
+        }
         String key = owner + "." + fieldName;
         return fieldMappings.getOrDefault(key, fieldName);
     }
     
     public String getMethodMapping(String owner, String methodName, String descriptor)
     {
+        if (methodName == null) {
+            return null;
+        }
         String key = owner + "." + methodName + descriptor;
         return methodMappings.getOrDefault(key, methodName);
     }
@@ -134,7 +164,7 @@ public class MappingManager
         }
         
         String packageScope = config.getPackageScope();
-        if (packageScope != null && !packageScope.isEmpty()) {
+        if (packageScope != null && !packageScope.isEmpty() && className != null) {
             return className.startsWith(packageScope);
         }
         
@@ -143,6 +173,10 @@ public class MappingManager
     
     private boolean shouldRenameField(String owner, String fieldName)
     {
+        if (fieldName == null) {
+            return false;
+        }
+        
         if (!config.isRenameFields()) {
             return false;
         }
@@ -156,6 +190,10 @@ public class MappingManager
     
     private boolean shouldRenameMethod(String owner, String methodName, String descriptor)
     {
+        if (methodName == null) {
+            return false;
+        }
+        
         if (!config.isRenameMethods()) {
             return false;
         }
@@ -164,11 +202,15 @@ public class MappingManager
             return false;
         }
         
-        if (methodName.equals("<init>") || methodName.equals("<clinit>")) {
+        if (methodName != null && (methodName.equals("<init>") || methodName.equals("<clinit>"))) {
             return false;
         }
         
-        if (methodName.startsWith("lambda$")) {
+        if (methodName != null && methodName.startsWith("lambda$")) {
+            return false;
+        }
+        
+        if (methodName != null && (methodName.equals("values") || methodName.equals("valueOf") || methodName.equals("$values"))) {
             return false;
         }
         

@@ -94,6 +94,9 @@ public class ObfuscationConfig
         if (packageScope == null || packageScope.isEmpty()) {
             return true;
         }
+        if (className == null) {
+            return false;
+        }
         return className.startsWith(packageScope);
     }
     
