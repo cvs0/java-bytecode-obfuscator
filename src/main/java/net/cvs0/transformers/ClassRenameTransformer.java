@@ -3,6 +3,7 @@ package net.cvs0.transformers;
 import net.cvs0.context.ObfuscationContext;
 import net.cvs0.core.AbstractTransformer;
 import net.cvs0.mappings.GlobalRemapper;
+import net.cvs0.mappings.SafeClassRemapper;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.ClassRemapper;
 
@@ -34,15 +35,20 @@ public class ClassRenameTransformer extends AbstractTransformer
             return;
         }
         
-        GlobalRemapper globalRemapper = new GlobalRemapper(context.getMappingManager());
-        ClassRemapper remapper = new ClassRemapper(writer, globalRemapper);
-        
-        String newName = context.getMappingManager().getClassMapping(className);
-        if (!className.equals(newName)) {
-            logTransformation("Applying mapping: " + className + " -> " + newName, context);
+        try {
+            GlobalRemapper globalRemapper = new GlobalRemapper(context.getMappingManager());
+            SafeClassRemapper remapper = new SafeClassRemapper(writer, globalRemapper, className);
+            
+            String newName = context.getMappingManager().getClassMapping(className);
+            if (!className.equals(newName)) {
+                logTransformation("Applying mapping: " + className + " -> " + newName, context);
+            }
+            
+            reader.accept(remapper, 0);
+        } catch (Exception e) {
+            logTransformation("Failed to apply remapping for class " + className + ": " + e.getMessage() + " - using original", context);
+            reader.accept(writer, 0);
         }
-        
-        reader.accept(remapper, 0);
     }
     
     @Override

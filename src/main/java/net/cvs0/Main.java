@@ -8,6 +8,7 @@ import net.cvs0.config.ObfuscationConfig;
 import net.cvs0.config.ConfigLoader;
 import net.cvs0.config.NamingMode;
 import net.cvs0.mappings.export.MappingExporter;
+import net.cvs0.utils.AntiDebugger;
 import net.cvs0.utils.Logger;
 
 import java.io.File;
@@ -44,6 +45,9 @@ public class Main implements Callable<Integer>
 
     @Option(names = {"--obfuscate-conditions"}, description = "Enable condition obfuscation (transforms true/false into complex expressions)")
     private Boolean obfuscateConditions;
+
+    @Option(names = {"--compress-strings"}, description = "Enable string compression (compresses string literals using deflate/base64)")
+    private Boolean compressStrings;
 
     @Option(names = {"--mappings", "--output-mappings"}, description = "Output mappings file")
     private File mappingsFile;
@@ -83,6 +87,24 @@ public class Main implements Callable<Integer>
                          "  RANDOM_LONG - Random long names (highly obfuscated)%n" +
                          "  SINGLE_CHAR - Single character names (a, b, c...)")
     private NamingMode namingMode;
+
+    @Option(names = {"--anti-debugging"}, description = "Enable anti-debugging protection")
+    private Boolean antiDebugging;
+
+    @Option(names = {"--debugger-action"}, 
+            description = "Action to take when debugger is detected:%n" +
+                         "  EXIT_SILENTLY - Exit without error%n" +
+                         "  EXIT_WITH_ERROR - Exit with error code%n" +  
+                         "  CORRUPT_EXECUTION - Corrupt execution flow%n" +
+                         "  INFINITE_LOOP - Enter infinite loop%n" +
+                         "  FAKE_EXECUTION - Continue with fake behavior")
+    private AntiDebugger.DebuggerAction debuggerAction;
+
+    @Option(names = {"--generate-score"}, description = "Generate obfuscation resistance score")
+    private Boolean generateScore;
+
+    @Option(names = {"--sequential-transformers"}, description = "Run transformers sequentially - each transformer processes all classes before the next starts (disabled by default)")
+    private Boolean sequentialTransformers;
 
     public static void main(String[] args)
     {
@@ -177,6 +199,10 @@ public class Main implements Callable<Integer>
             builder.obfuscateConditions(obfuscateConditions);
         }
         
+        if (compressStrings != null) {
+            builder.compressStrings(compressStrings);
+        }
+        
         if (verbose) {
             builder.verbose(true);
         }
@@ -204,6 +230,22 @@ public class Main implements Callable<Integer>
         
         if (namingMode != null) {
             builder.namingMode(namingMode);
+        }
+        
+        if (antiDebugging != null) {
+            builder.antiDebugging(antiDebugging);
+        }
+        
+        if (debuggerAction != null) {
+            builder.debuggerAction(debuggerAction);
+        }
+        
+        if (generateScore != null) {
+            builder.generateScore(generateScore);
+        }
+        
+        if (sequentialTransformers != null) {
+            builder.sequentialTransformers(sequentialTransformers);
         }
         
         if (configFile == null && renameClasses == null && renameFields == null && renameMethods == null && renameLocalVariables == null) {

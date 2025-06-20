@@ -1,5 +1,6 @@
 package net.cvs0.config;
 
+import net.cvs0.utils.AntiDebugger;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -15,6 +16,43 @@ public class ObfuscationConfig
     private final KeepRules keepRules;
     private final String packageScope;
     private final NamingMode namingMode;
+    private final boolean antiDebugging;
+    private final AntiDebugger.DebuggerAction debuggerAction;
+    private final boolean generateScore;
+    private final boolean sequentialTransformers;
+    private final ObfuscationLevel obfuscationLevel;
+    private final Map<String, Object> customSettings;
+    private final List<String> excludePackages;
+    private final List<String> includePackages;
+    private final boolean preserveLineNumbers;
+    private final boolean preserveLocalVariableNames;
+    private final boolean optimizeCode;
+    private final boolean compressStrings;
+    private final boolean shuffleMembers;
+    private final int maxThreads;
+    private final boolean enableBackup;
+    private final String backupDir;
+
+    public enum ObfuscationLevel
+    {
+        MINIMAL("Minimal obfuscation - basic renaming only"),
+        BASIC("Basic obfuscation - standard settings"),
+        AGGRESSIVE("Aggressive obfuscation - heavy transformations"),
+        EXTREME("Extreme obfuscation - maximum security, may impact performance"),
+        CUSTOM("Custom configuration");
+
+        private final String description;
+
+        ObfuscationLevel(String description)
+        {
+            this.description = description;
+        }
+
+        public String getDescription()
+        {
+            return description;
+        }
+    }
 
     public ObfuscationConfig(
             String mainClass,
@@ -26,7 +64,23 @@ public class ObfuscationConfig
             boolean verbose,
             KeepRules keepRules,
             String packageScope,
-            NamingMode namingMode)
+            NamingMode namingMode,
+            boolean antiDebugging,
+            AntiDebugger.DebuggerAction debuggerAction,
+            boolean generateScore,
+            boolean sequentialTransformers,
+            ObfuscationLevel obfuscationLevel,
+            Map<String, Object> customSettings,
+            List<String> excludePackages,
+            List<String> includePackages,
+            boolean preserveLineNumbers,
+            boolean preserveLocalVariableNames,
+            boolean optimizeCode,
+            boolean compressStrings,
+            boolean shuffleMembers,
+            int maxThreads,
+            boolean enableBackup,
+            String backupDir)
     {
         this.mainClass = mainClass;
         this.renameClasses = renameClasses;
@@ -38,6 +92,22 @@ public class ObfuscationConfig
         this.keepRules = keepRules != null ? keepRules : new KeepRules();
         this.packageScope = packageScope;
         this.namingMode = namingMode != null ? namingMode : NamingMode.SEQUENTIAL_PREFIX;
+        this.antiDebugging = antiDebugging;
+        this.debuggerAction = debuggerAction != null ? debuggerAction : AntiDebugger.DebuggerAction.EXIT_SILENTLY;
+        this.generateScore = generateScore;
+        this.sequentialTransformers = sequentialTransformers;
+        this.obfuscationLevel = obfuscationLevel != null ? obfuscationLevel : ObfuscationLevel.BASIC;
+        this.customSettings = customSettings != null ? new HashMap<>(customSettings) : new HashMap<>();
+        this.excludePackages = excludePackages != null ? new ArrayList<>(excludePackages) : new ArrayList<>();
+        this.includePackages = includePackages != null ? new ArrayList<>(includePackages) : new ArrayList<>();
+        this.preserveLineNumbers = preserveLineNumbers;
+        this.preserveLocalVariableNames = preserveLocalVariableNames;
+        this.optimizeCode = optimizeCode;
+        this.compressStrings = compressStrings;
+        this.shuffleMembers = shuffleMembers;
+        this.maxThreads = maxThreads > 0 ? maxThreads : Runtime.getRuntime().availableProcessors();
+        this.enableBackup = enableBackup;
+        this.backupDir = backupDir;
     }
 
     public String getMainClass()
@@ -90,6 +160,86 @@ public class ObfuscationConfig
         return keepRules;
     }
     
+    public boolean isAntiDebugging()
+    {
+        return antiDebugging;
+    }
+    
+    public AntiDebugger.DebuggerAction getDebuggerAction()
+    {
+        return debuggerAction;
+    }
+    
+    public boolean isGenerateScore()
+    {
+        return generateScore;
+    }
+    
+    public boolean isSequentialTransformers()
+    {
+        return sequentialTransformers;
+    }
+    
+    public ObfuscationLevel getObfuscationLevel()
+    {
+        return obfuscationLevel;
+    }
+    
+    public Map<String, Object> getCustomSettings()
+    {
+        return customSettings;
+    }
+    
+    public List<String> getExcludePackages()
+    {
+        return excludePackages;
+    }
+    
+    public List<String> getIncludePackages()
+    {
+        return includePackages;
+    }
+    
+    public boolean isPreserveLineNumbers()
+    {
+        return preserveLineNumbers;
+    }
+    
+    public boolean isPreserveLocalVariableNames()
+    {
+        return preserveLocalVariableNames;
+    }
+    
+    public boolean isOptimizeCode()
+    {
+        return optimizeCode;
+    }
+    
+    public boolean isCompressStrings()
+    {
+        return compressStrings;
+    }
+    
+    public boolean isShuffleMembers()
+    {
+        return shuffleMembers;
+    }
+    
+    public int getMaxThreads()
+    {
+        return maxThreads;
+    }
+    
+    public boolean isEnableBackup()
+    {
+        return enableBackup;
+    }
+    
+    public String getBackupDir()
+    {
+        return backupDir;
+    }
+    
     public boolean shouldKeepClass(String className)
     {
         return keepRules.shouldKeepClass(className);
@@ -107,12 +257,29 @@ public class ObfuscationConfig
     
     public boolean isInPackageScope(String className)
     {
-        if (packageScope == null || packageScope.isEmpty()) {
-            return false;
-        }
         if (className == null) {
             return false;
         }
+        
+        for (String excludePackage : excludePackages) {
+            if (className.startsWith(excludePackage)) {
+                return false;
+            }
+        }
+        
+        if (!includePackages.isEmpty()) {
+            for (String includePackage : includePackages) {
+                if (className.startsWith(includePackage)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        if (packageScope == null || packageScope.isEmpty()) {
+            return true;
+        }
+        
         return className.startsWith(packageScope);
     }
     
@@ -239,6 +406,22 @@ public class ObfuscationConfig
         private final KeepRules keepRules = new KeepRules();
         private String packageScope;
         private NamingMode namingMode = NamingMode.SEQUENTIAL_PREFIX;
+        private boolean antiDebugging = false;
+        private AntiDebugger.DebuggerAction debuggerAction = AntiDebugger.DebuggerAction.EXIT_SILENTLY;
+        private boolean generateScore = false;
+        private boolean sequentialTransformers = false;
+        private ObfuscationLevel obfuscationLevel = ObfuscationLevel.BASIC;
+        private final Map<String, Object> customSettings = new HashMap<>();
+        private final List<String> excludePackages = new ArrayList<>();
+        private final List<String> includePackages = new ArrayList<>();
+        private boolean preserveLineNumbers = false;
+        private boolean preserveLocalVariableNames = false;
+        private boolean optimizeCode = false;
+        private boolean compressStrings = false;
+        private boolean shuffleMembers = false;
+        private int maxThreads = Runtime.getRuntime().availableProcessors();
+        private boolean enableBackup = false;
+        private String backupDir;
         
         public Builder mainClass(String mainClass)
         {
@@ -368,9 +551,181 @@ public class ObfuscationConfig
             return this;
         }
         
+        public Builder antiDebugging(boolean antiDebugging)
+        {
+            this.antiDebugging = antiDebugging;
+            return this;
+        }
+        
+        public Builder debuggerAction(AntiDebugger.DebuggerAction debuggerAction)
+        {
+            this.debuggerAction = debuggerAction;
+            return this;
+        }
+        
+        public Builder generateScore(boolean generateScore)
+        {
+            this.generateScore = generateScore;
+            return this;
+        }
+        
+        public Builder sequentialTransformers(boolean sequentialTransformers)
+        {
+            this.sequentialTransformers = sequentialTransformers;
+            return this;
+        }
+        
+        public Builder obfuscationLevel(ObfuscationLevel level)
+        {
+            this.obfuscationLevel = level;
+            applyPresetForLevel(level);
+            return this;
+        }
+        
+        public Builder customSetting(String key, Object value)
+        {
+            this.customSettings.put(key, value);
+            return this;
+        }
+        
+        public Builder excludePackage(String packageName)
+        {
+            this.excludePackages.add(packageName);
+            return this;
+        }
+        
+        public Builder includePackage(String packageName)
+        {
+            this.includePackages.add(packageName);
+            return this;
+        }
+        
+        public Builder preserveLineNumbers(boolean preserve)
+        {
+            this.preserveLineNumbers = preserve;
+            return this;
+        }
+        
+        public Builder preserveLocalVariableNames(boolean preserve)
+        {
+            this.preserveLocalVariableNames = preserve;
+            return this;
+        }
+        
+        public Builder optimizeCode(boolean optimize)
+        {
+            this.optimizeCode = optimize;
+            return this;
+        }
+        
+        public Builder compressStrings(boolean compress)
+        {
+            this.compressStrings = compress;
+            return this;
+        }
+        
+        public Builder shuffleMembers(boolean shuffle)
+        {
+            this.shuffleMembers = shuffle;
+            return this;
+        }
+        
+        public Builder maxThreads(int threads)
+        {
+            this.maxThreads = Math.max(1, threads);
+            return this;
+        }
+        
+        public Builder enableBackup(boolean enable)
+        {
+            this.enableBackup = enable;
+            return this;
+        }
+        
+        public Builder backupDir(String dir)
+        {
+            this.backupDir = dir;
+            return this;
+        }
+        
+        private void applyPresetForLevel(ObfuscationLevel level)
+        {
+            switch (level) {
+                case MINIMAL:
+                    renameClasses = true;
+                    renameFields = false;
+                    renameMethods = false;
+                    renameLocalVariables = false;
+                    obfuscateConditions = false;
+                    antiDebugging = false;
+                    namingMode = NamingMode.SEQUENTIAL_PREFIX;
+                    break;
+                    
+                case BASIC:
+                    renameClasses = true;
+                    renameFields = true;
+                    renameMethods = true;
+                    renameLocalVariables = false;
+                    obfuscateConditions = false;
+                    antiDebugging = false;
+                    namingMode = NamingMode.SEQUENTIAL_ALPHA;
+                    break;
+                    
+                case AGGRESSIVE:
+                    renameClasses = true;
+                    renameFields = true;
+                    renameMethods = true;
+                    renameLocalVariables = true;
+                    obfuscateConditions = true;
+                    antiDebugging = true;
+                    namingMode = NamingMode.RANDOM_SHORT;
+                    shuffleMembers = true;
+                    break;
+                    
+                case EXTREME:
+                    renameClasses = true;
+                    renameFields = true;
+                    renameMethods = true;
+                    renameLocalVariables = true;
+                    obfuscateConditions = true;
+                    antiDebugging = true;
+                    debuggerAction = AntiDebugger.DebuggerAction.CORRUPT_EXECUTION;
+                    namingMode = NamingMode.RANDOM_LONG;
+                    shuffleMembers = true;
+                    compressStrings = true;
+                    break;
+                    
+                case CUSTOM:
+                default:
+                    break;
+            }
+        }
+        
         public ObfuscationConfig build()
         {
-            return new ObfuscationConfig(mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, obfuscateConditions, verbose, keepRules, packageScope, namingMode);
+            ConfigValidator.ValidationResult validation = ConfigValidator.validateBuilder(this);
+            if (!validation.isValid()) {
+                throw new IllegalStateException("Invalid configuration: " + String.join(", ", validation.getErrors()));
+            }
+            
+            return new ObfuscationConfig(
+                mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, 
+                obfuscateConditions, verbose, keepRules, packageScope, namingMode, 
+                antiDebugging, debuggerAction, generateScore, sequentialTransformers,
+                obfuscationLevel, customSettings, excludePackages, includePackages,
+                preserveLineNumbers, preserveLocalVariableNames, optimizeCode, 
+                compressStrings, shuffleMembers, maxThreads, enableBackup, backupDir
+            );
+        }
+        
+        public ConfigValidator.ValidationResult validate()
+        {
+            return ConfigValidator.validateBuilder(this);
+        }
+        
+        public boolean isValid()
+        {
+            return validate().isValid();
         }
     }
 }

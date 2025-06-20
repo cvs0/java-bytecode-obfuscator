@@ -1,9 +1,11 @@
 package net.cvs0.core;
 
+import net.cvs0.analysis.ObfuscationScorer;
 import net.cvs0.config.ObfuscationConfig;
 import net.cvs0.context.ObfuscationContext;
 import net.cvs0.mappings.MappingProcessor;
 import net.cvs0.mappings.InheritanceTracker;
+import net.cvs0.transformers.AntiDebuggingTransformer;
 import net.cvs0.utils.ValidationUtils;
 import net.cvs0.utils.Logger;
 import org.objectweb.asm.ClassReader;
@@ -106,6 +108,11 @@ public class ObfuscationEngine
             writeMappingsFromContextWithFormat(mappingsFile, config, format, comprehensiveEngine);
         }
         
+        if (config.isGenerateScore()) {
+            Logger.step("Generating obfuscation resistance score");
+            generateObfuscationScore(config, lastContext);
+        }
+        
         logCompleteWithTransformers(config, obfuscatedClasses.size());
     }
     
@@ -116,6 +123,10 @@ public class ObfuscationEngine
         
         if (config.isRenameClasses() || config.isRenameMethods() || config.isRenameFields()) {
             setupMappingManager(context, inputClasses);
+        }
+        
+        if (config.isSequentialTransformers()) {
+            return obfuscateSequentially(inputClasses, config, context);
         }
         
         Map<String, byte[]> result = new HashMap<>();
@@ -133,14 +144,14 @@ public class ObfuscationEngine
                 continue;
             }
             
-            ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS);
+            ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
             
             ClassReader currentReader = reader;
             ClassWriter currentWriter = writer;
             
             for (Transformer transformer : transformers) {
                 if (transformer.isEnabled(context)) {
-                    ClassWriter nextWriter = new ClassWriter(currentReader, ClassWriter.COMPUTE_MAXS);
+                    ClassWriter nextWriter = new ClassWriter(currentReader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
                     transformer.transform(currentReader, nextWriter, context);
                     
                     byte[] transformedBytes = nextWriter.toByteArray();
@@ -163,6 +174,55 @@ public class ObfuscationEngine
             
             String finalClassName = context.getClassMappings().getOrDefault(className, className);
             result.put(finalClassName, currentWriter.toByteArray());
+        }
+        
+        return result;
+    }
+    
+    private Map<String, byte[]> obfuscateSequentially(Map<String, byte[]> inputClasses, ObfuscationConfig config, ObfuscationContext context) throws IOException
+    {
+        Map<String, byte[]> result = new HashMap<>(inputClasses);
+        
+        for (Transformer transformer : transformers) {
+            if (transformer.isEnabled(context)) {
+                Map<String, byte[]> currentResult = new HashMap<>();
+                
+                for (Map.Entry<String, byte[]> entry : result.entrySet()) {
+                    String className = entry.getKey();
+                    byte[] classBytes = entry.getValue();
+                    
+                    ClassReader reader = new ClassReader(classBytes);
+                    String actualClassName = reader.getClassName();
+                    
+                    boolean shouldProcess = shouldProcessClass(actualClassName, config);
+                    if (!shouldProcess) {
+                        currentResult.put(className, classBytes);
+                        continue;
+                    }
+                    
+                    ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+                    
+                    try {
+                        transformer.transform(reader, writer, context);
+                        byte[] transformedBytes = writer.toByteArray();
+                        
+                        ClassReader testReader = new ClassReader(transformedBytes);
+                        String testClassName = testReader.getClassName();
+                        if (testClassName == null) {
+                            System.err.println("Transformer " + transformer.getName() + " produced invalid bytecode for class " + className + " - using original");
+                            currentResult.put(className, classBytes);
+                        } else {
+                            String finalClassName = context.getClassMappings().getOrDefault(className, className);
+                            currentResult.put(finalClassName, transformedBytes);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Transformer " + transformer.getName() + " failed for class " + className + ": " + e.getMessage() + " - using original");
+                        currentResult.put(className, classBytes);
+                    }
+                }
+                
+                result = currentResult;
+            }
         }
         
         return result;
@@ -375,20 +435,6 @@ public class ObfuscationEngine
         return classes;
     }
     
-    private boolean shouldProcessClass(String className, ObfuscationConfig config)
-    {
-        if (className == null) {
-            return false;
-        }
-        
-        String packageScope = config.getPackageScope();
-        if (packageScope != null && !packageScope.isEmpty()) {
-            return className.startsWith(packageScope);
-        }
-        
-        return false;
-    }
-    
     private void writeObfuscatedJar(File inputJar, File outputJar, Map<String, byte[]> obfuscatedClasses) throws IOException
     {
         try (JarFile jarFile = new JarFile(inputJar);
@@ -465,5 +511,31 @@ public class ObfuscationEngine
         Logger.stats("Classes processed", engine.getMappingManager().getClassMappings().size());
         Logger.stats("Fields processed", engine.getMappingManager().getFieldMappings().size());
         Logger.stats("Methods processed", engine.getMappingManager().getMethodMappings().size());
+    }
+    
+    private void generateObfuscationScore(ObfuscationConfig config, ObfuscationContext context)
+    {
+        try {
+            ObfuscationScorer scorer = new ObfuscationScorer(config, context);
+            ObfuscationScorer.ObfuscationScore score = scorer.calculateScore();
+            
+            Logger.info("\n" + score.toString());
+            
+        } catch (Exception e) {
+            Logger.error("Failed to generate obfuscation score: " + e.getMessage());
+        }
+    }
+    
+    private boolean shouldProcessClass(String className, ObfuscationConfig config)
+    {
+        if (className == null) {
+            return false;
+        }
+        
+        if (config.getPackageScope() != null && !config.getPackageScope().isEmpty()) {
+            return className.startsWith(config.getPackageScope().replace('.', '/'));
+        }
+        
+        return true;
     }
 }

@@ -10,15 +10,21 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Field Renaming** - Rename fields while maintaining proper access relationships
 - **Local Variable Renaming** - Obfuscate local variable names for additional protection
 - **Condition Obfuscation** - Transform simple boolean constants (true/false) into complex arithmetic expressions
+- **String Compression** - Compress string literals using deflate/base64 encoding to reduce size and obfuscate content
+- **String Compression** - Compress string literals using deflate/base64 encoding to reduce size and obfuscate content
+- **Anti-Debugging Protection** - Runtime detection and response to debugging attempts
 - **Reference Updating** - Automatically updates all references to renamed elements throughout the codebase
 - **Inheritance-Aware Renaming** - Properly handles interface implementations and method overrides
 - **Multiple Naming Modes** - Choose from sequential, alphabetic, random short/long, or single character naming schemes
 
 ### 🎯 Advanced Configuration
+- **Obfuscation Levels** - Pre-defined security levels (MINIMAL, BASIC, AGGRESSIVE, EXTREME, CUSTOM)
 - **Keep Rules System** - Sophisticated rules for preserving specific classes, methods, and fields
 - **Pattern Matching** - Use regex patterns to define keep rules for multiple elements at once
+- **Package Filtering** - Include/exclude specific packages with fine-grained control
 - **Granular Control** - Specify exactly what to keep at the class, method, and field level
-- **Configuration Files** - JSON-based configuration with presets for common scenarios
+- **Configuration Files** - Enhanced JSON-based configuration with nested structure and presets
+- **Configuration Validation** - Comprehensive validation with detailed warnings and error reporting
 - **Command Line Interface** - Full-featured CLI with extensive options
 
 ### 🔄 Extensible Architecture
@@ -32,8 +38,10 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Timestamped Logs** - All operations are timestamped for debugging
 - **Progress Tracking** - Visual progress indicators and statistics
 - **Mapping Generation** - Generate detailed mappings of original to obfuscated names
+- **Obfuscation Resistance Scoring** - Comprehensive analysis of obfuscation strength with recommendations
 - **Verbose Mode** - Detailed logging of all transformations performed
 - **Validation System** - Comprehensive validation with warnings and error detection
+- **Performance Monitoring** - Execution statistics and optimization recommendations
 
 ### 🛠️ Smart Handling
 - **Method References** - Properly handles Java 8+ method references (::) in lambda expressions
@@ -41,6 +49,10 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Bridge Methods** - Correct handling of bridge methods in inheritance hierarchies
 - **Entry Point Protection** - Automatic preservation of main methods and constructors
 - **JAR Structure** - Preserves non-class files (resources, manifests, etc.)
+- **Multi-threading** - Configurable parallel processing for improved performance
+- **Backup System** - Automatic backup creation with configurable directory
+- **String Compression** - Advanced string obfuscation and compression techniques
+- **Code Optimization** - Built-in bytecode optimization during obfuscation
 
 ## 🚀 Quick Start
 
@@ -59,52 +71,111 @@ cd java-bytecode-obfuscator
 ```bash
 # Simple obfuscation with all features enabled
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
+  --rename-classes --rename-methods --rename-fields --rename-local-variables \
+  \
+  --obfuscate-conditions --compress-strings --compress-strings
+
+# Maximum security with anti-debugging and resistance scoring
+java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
+  --rename-classes --rename-methods --rename-fields --rename-local-variables \
+  --obfuscate-conditions --compress-strings --compress-strings --anti-debugging \
+  \
+  --debugger-action EXIT_WITH_ERROR --generate-score --naming-mode RANDOM_LONG
 
 # With main class protection
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
   -m com.example.Main --keep-main-class --keep-entry-points \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
+  --rename-classes --rename-methods --rename-fields --rename-local-variables \
+  \
+  --obfuscate-conditions --compress-strings
 
-# Generate mappings for debugging
+# Generate mappings and resistance score
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
-  --mappings mappings.txt --verbose \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
+  --mappings mappings.txt --generate-score --verbose \
+  --rename-classes --rename-methods --rename-fields --rename-local-variables \
+  \
+  --obfuscate-conditions --compress-strings --compress-strings
 
 # Use different naming modes
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
-  --naming-mode RANDOM_SHORT --rename-classes --rename-methods --rename-fields --obfuscate-conditions
+  --naming-mode RANDOM_SHORT --rename-classes --rename-methods --rename-fields \
+  \
+  --obfuscate-conditions --compress-strings --compress-strings
 
 java -jar java-bytecode-obfuscator-1.0-SNAPSHOT.jar input.jar output.jar \
   --naming-mode SEQUENTIAL_ALPHA --verbose \
-  --rename-classes --rename-methods --rename-fields --rename-local-variables --obfuscate-conditions
+  --rename-classes --rename-methods --rename-fields --rename-local-variables \
+  \
+  --obfuscate-conditions --compress-strings --compress-strings
 ```
 
-### Configuration File
+### Enhanced Configuration File
 
-Create a JSON configuration file for complex scenarios:
+Create a comprehensive JSON configuration file:
 
 ```json
 {
-  "mainClass": "com/example/Main",
-  "renameClasses": true,
-  "renameFields": true,
-  "renameMethods": true,
-  "renameLocalVariables": true,
-  "obfuscateConditions": true,
-  "namingMode": "RANDOM_SHORT",
-  "verbose": true,
+  "obfuscationLevel": "AGGRESSIVE",
+  "mainClass": "com/example/MyApp",
+  
+  "obfuscation": {
+    "renameClasses": true,
+    "renameFields": true,
+    "renameMethods": true,
+    "renameLocalVariables": true,
+    "obfuscateConditions": true,
+    "compressStrings": true,
+    "shuffleMembers": true,
+    "optimizeCode": true
+  },
+  
+  "naming": {
+    "namingMode": "RANDOM_SHORT"
+  },
+  
+  "security": {
+    "antiDebugging": true,
+    "debuggerAction": "CORRUPT_EXECUTION"
+  },
+  
+  "packages": {
+    "includePackages": ["com/example/core", "com/example/business"],
+    "excludePackages": ["com/example/test", "com/example/debug"]
+  },
+  
   "keepRules": {
     "keepMainClass": true,
     "keepStandardEntryPoints": true,
     "keepClasses": ["com/example/api/PublicAPI"],
-    "keepClassPatterns": [".*Controller"],
+    "keepClassPatterns": [".*Controller", ".*Exception"],
     "keepMethods": {
-      "com/example/Service": ["publicMethod"]
+      "com/example/api/PublicAPI": ["publicMethod"]
     },
     "keepMethodPatterns": {
-      ".*Controller": ["handle.*"]
+      ".*Controller": ["handle.*", "process.*"]
     }
+  },
+  
+  "debugging": {
+    "preserveLineNumbers": false,
+    "preserveLocalVariableNames": false,
+    "verbose": false,
+    "generateScore": true
+  },
+  
+  "performance": {
+    "maxThreads": 4,
+    "sequentialTransformers": false
+  },
+  
+  "backup": {
+    "enableBackup": true,
+    "backupDir": "./backups"
+  },
+  
+  "customSettings": {
+    "stringEncryptionKey": "myCustomKey123",
+    "customTransformerEnabled": true
   }
 }
 ```
@@ -122,6 +193,8 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameMethods(true)
     .renameLocalVariables(true)
     .obfuscateConditions(true)
+    .compressStrings(true)
+    .compressStrings(true)
     .namingMode(NamingMode.RANDOM_SHORT)
     .verbose(true)
     
@@ -147,6 +220,84 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
 Obfuscator obfuscator = new Obfuscator();
 obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile);
 ```
+
+## 🎚️ Obfuscation Levels
+
+The obfuscator provides pre-defined security levels that automatically configure optimal settings for different use cases:
+
+### Available Levels
+
+| Level | Description | Use Case | Settings |
+|-------|-------------|----------|----------|
+| **MINIMAL** | Basic protection with minimal impact | Development, debugging | Classes only, sequential naming |
+| **BASIC** | Standard obfuscation for most applications | Production applications | Classes, fields, methods |
+| **AGGRESSIVE** | Heavy obfuscation with advanced techniques | Sensitive applications | All features, anti-debugging, shuffling |
+| **EXTREME** | Maximum security with performance trade-offs | High-security applications | All features, maximum settings |
+| **CUSTOM** | User-defined configuration | Specific requirements | Manual configuration |
+
+### Quick Level Selection
+
+```bash
+# Use predefined levels
+java -jar obfuscator.jar input.jar output.jar --level AGGRESSIVE
+
+# Override specific settings
+java -jar obfuscator.jar input.jar output.jar --level BASIC --anti-debugging
+```
+
+### Programmatic Usage
+
+```java
+// Quick level selection
+ObfuscationConfig config = ConfigPresets.createPresetForLevel(ObfuscationLevel.AGGRESSIVE)
+    .mainClass("com/example/Main")
+    .keepMainClass()
+    .build();
+
+// Pre-built presets
+ObfuscationConfig prodConfig = ConfigPresets.createProductionObfuscation()
+    .mainClass("com/example/Main")
+    .build();
+
+ObfuscationConfig devConfig = ConfigPresets.createDevelopmentObfuscation()
+    .mainClass("com/example/Main")
+    .build();
+
+ObfuscationConfig secureConfig = ConfigPresets.createSecureObfuscation()
+    .mainClass("com/example/Main")
+    .build();
+```
+
+### Level Details
+
+#### MINIMAL Level
+- Class renaming only
+- Sequential naming with prefix
+- No anti-debugging
+- Preserves debugging information
+- Fast processing
+
+#### BASIC Level (Default)
+- Class, field, and method renaming
+- Sequential alphabetic naming
+- Basic keep rules
+- Balanced security and performance
+
+#### AGGRESSIVE Level
+- All renaming features
+- Local variable obfuscation
+- Condition obfuscation
+- Anti-debugging protection
+- Member shuffling
+- Random short naming
+
+#### EXTREME Level
+- Maximum obfuscation settings
+- String compression
+- Code optimization
+- Advanced anti-debugging
+- Random long naming
+- All security features
 
 ## Naming Modes
 
@@ -241,7 +392,7 @@ java -jar obfuscator.jar input.jar output.jar --obfuscate-conditions
 # Combined with other obfuscation techniques
 java -jar obfuscator.jar input.jar output.jar \
   --rename-classes --rename-methods --rename-fields \
-  --obfuscate-conditions --verbose
+  --obfuscate-conditions --compress-strings --compress-strings --verbose
 ```
 
 ### Configuration
@@ -252,6 +403,8 @@ java -jar obfuscator.jar input.jar output.jar \
   "renameFields": true,
   "renameMethods": true,
   "obfuscateConditions": true,
+  "compressStrings": true,
+  "compressStrings": true,
   "verbose": true
 }
 ```
@@ -264,6 +417,8 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .renameFields(true)
     .renameMethods(true)
     .obfuscateConditions(true)
+    .compressStrings(true)
+    .compressStrings(true)
     .build();
 ```
 
@@ -294,6 +449,134 @@ public void b() {
     }
 }
 
+## 🗜️ String Compression
+
+String compression transforms string literals into compressed, base64-encoded data that is decompressed at runtime. This reduces JAR size and makes string analysis more difficult.
+
+### How It Works
+
+The transformer identifies string literals and compresses them using the Deflate algorithm, then encodes them with Base64. At runtime, the compressed strings are decompressed transparently.
+
+**Original Code:**
+```java
+public class Example {
+    public static void main(String[] args) {
+        String message = "This is a very long string that contains a lot of repetitive text and should be compressed effectively using the deflate algorithm for better obfuscation."; (transforms boolean constants)
+        System.out.println("Application started with message: " + message);
+    }
+}
+```
+
+**Obfuscated Code:**
+```java
+public class a1 {
+    public static void main(String[] args) {
+        String a = new String(new java.util.zip.Inflater().inflate(java.util.Base64.getDecoder().decode("eJwLycxNzStJzSvJTFHwSM3JzM+Lz8nPS1WwMjQwMDK1UjA0NDEwMLRSULA0NDQwsDK0MjSyMjKzMjKzMjKzMjK...")), 0, 147, java.nio.charset.StandardCharsets.UTF_8);
+        System.out.println("Application started with message: " + a);
+    }
+}
+```
+
+### Features
+
+- **Intelligent String Selection** - Only compresses strings that benefit from compression (length > 10 characters)
+- **Special String Detection** - Avoids compressing URLs, configuration strings, class names, and other special patterns
+- **Compression Efficiency** - Only applies compression if the result is actually smaller
+- **Configurable Probability** - Randomly compresses strings to avoid predictable patterns (70% chance by default)
+- **Runtime Transparent** - Decompression happens automatically at runtime
+- **Keep Rules Aware** - Respects keep rules and doesn't compress strings in preserved classes
+
+### Usage
+
+```bash
+# Enable string compression via CLI
+java -jar obfuscator.jar input.jar output.jar --compress-strings
+
+# Combined with other obfuscation techniques
+java -jar obfuscator.jar input.jar output.jar \
+  --rename-classes --rename-methods --rename-fields \
+  --compress-strings --obfuscate-conditions --verbose
+```
+
+### Configuration File
+
+```json
+{
+  "obfuscation": {
+    "renameClasses": true,
+    "renameFields": true,
+    "renameMethods": true,
+    "compressStrings": true
+  },
+  "debugging": {
+    "verbose": true
+  }
+}
+```
+
+### Programmatic Usage
+
+```java
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .renameClasses(true)
+    .renameFields(true)
+    .renameMethods(true)
+    .compressStrings(true)
+    .verbose(true)
+    .build();
+
+Obfuscator obfuscator = new Obfuscator();
+obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile);
+```
+
+### String Selection Criteria
+
+The transformer automatically determines which strings to compress based on:
+
+| Criteria | Description | Example |
+|----------|-------------|---------|
+| **Minimum Length** | Strings must be at least 10 characters | `"Short"` → Not compressed |
+| **Special Patterns** | Avoids URLs, config strings, file extensions | `"https://example.com"` → Not compressed |
+| **Compression Efficiency** | Only compresses if result is smaller | `"aaaaaaaaaa"` → Compressed |
+| **Class Keep Rules** | Respects keep rules for classes | Kept classes → Strings not compressed |
+| **Random Selection** | 70% probability to avoid patterns | Random selection to prevent analysis |
+
+### Benefits
+
+- **Size Reduction** - Compresses repetitive or long strings effectively
+- **Content Obfuscation** - Makes string analysis much more difficult
+- **Runtime Performance** - Minimal impact on application startup
+- **Reverse Engineering Protection** - Strings are not visible in decompiled code
+- **Pattern Breaking** - Random compression prevents pattern-based analysis
+
+### Performance Impact
+
+- **Compression Time** - Adds minimal time during obfuscation
+- **Runtime Overhead** - Small one-time decompression cost per string
+- **Memory Usage** - Slightly higher memory usage during decompression
+- **JAR Size** - Usually reduces overall JAR size for applications with many long strings
+
+### Best Practices
+
+1. **Combine with Other Features** - Use alongside renaming and condition obfuscation
+2. **Test Performance** - Profile your application after string compression
+3. **Verify Functionality** - Ensure compressed strings work correctly in your use case
+4. **Monitor JAR Size** - Check if compression actually reduces your JAR size
+
+### Examples
+
+**Long Strings (Compressed):**
+- Error messages and user notifications
+- SQL queries and database scripts
+- Configuration templates
+- Help text and documentation strings
+
+**Short/Special Strings (Not Compressed):**
+- Class names and package names
+- URLs and file paths
+- Single words and short constants
+- Format strings and patterns
+
 ## CLI Reference
 
 ### Command Line Options
@@ -305,24 +588,53 @@ Arguments:
   <input-jar>                 Input JAR file to obfuscate
   <output-jar>                Output JAR file
 
-Options:
+Core Options:
   -c, --config <file>         Configuration file (JSON)
   -m, --main-class <class>    Main class name
+  -l, --level <level>         Obfuscation level (MINIMAL, BASIC, AGGRESSIVE, EXTREME, CUSTOM)
+      --mappings <file>       Output mappings file
+  -v, --verbose               Enable verbose output
+  -h, --help                  Show help
+      --version (deflate/base64 encoding)               Show version
+
+Obfuscation Options:
       --rename-classes        Enable class renaming
       --rename-fields         Enable field renaming  
       --rename-methods        Enable method renaming
       --rename-local-variables Enable local variable renaming
       --obfuscate-conditions  Enable condition obfuscation (transforms boolean constants)
+      --compress-strings      Enable string compression (deflate/base64 encoding)
+      --shuffle-members       Enable member shuffling
+      --optimize-code         Enable code optimization
+
+Naming Options:
   -n, --naming-mode <mode>    Name generation mode (SEQUENTIAL_PREFIX, SEQUENTIAL_ALPHA, 
                               RANDOM_SHORT, RANDOM_LONG, SINGLE_CHAR)
-      --mappings <file>       Output mappings file
-  -v, --verbose               Enable verbose output
+
+Security Options:
+      --anti-debugging        Enable anti-debugging protection
+      --debugger-action <action> Debugger response (EXIT_SILENTLY, EXIT_WITH_ERROR, CORRUPT_EXECUTION)
+
+Package Options:
+      --include-package <pkg> Include specific package (repeatable)
+      --exclude-package <pkg> Exclude specific package (repeatable)
+
+Keep Rules:
       --keep-class <class>    Keep specific class (repeatable)
       --keep-class-pattern <pattern>  Keep classes matching pattern (repeatable)
       --keep-main-class       Keep the main class
       --keep-entry-points     Keep standard entry points
-  -h, --help                  Show help
-      --version               Show version
+
+Debugging Options:
+      --preserve-line-numbers Preserve line numbers for debugging
+      --preserve-local-vars   Preserve local variable names
+      --generate-score        Generate obfuscation resistance score
+
+Performance Options:
+      --max-threads <n>       Maximum number of threads
+      --sequential            Use sequential transformer processing
+      --enable-backup         Enable backup creation
+      --backup-dir <dir>      Backup directory path
 ```
 
 ### CLI Examples
@@ -369,22 +681,136 @@ java -jar obfuscator.jar -c config.json input.jar output.jar \
   --verbose
 ```
 
+## 📦 Package Filtering
+
+Control which packages are processed during obfuscation with fine-grained include/exclude rules:
+
+### Include Packages
+Only process classes in specified packages:
+
+```bash
+java -jar obfuscator.jar input.jar output.jar \
+  --include-package com.example.core \
+  --include-package com.example.business \
+  --rename-classes --rename-methods --rename-fields
+```
+
+### Exclude Packages
+Skip processing of specified packages:
+
+```bash
+java -jar obfuscator.jar input.jar output.jar \
+  --exclude-package com.example.test \
+  --exclude-package com.example.debug \
+  --rename-classes --rename-methods --rename-fields
+```
+
+### Configuration File
+```json
+{
+  "packages": {
+    "includePackages": [
+      "com/example/core",
+      "com/example/business",
+      "com/example/services"
+    ],
+    "excludePackages": [
+      "com/example/test",
+      "com/example/debug",
+      "com/example/tools"
+    ]
+  }
+}
+```
+
+### Programmatic Usage
+```java
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .includePackage("com/example/core")
+    .includePackage("com/example/business")
+    .excludePackage("com/example/test")
+    .excludePackage("com/example/debug")
+    .renameClasses(true)
+    .renameFields(true)
+    .renameMethods(true)
+    .build();
+```
+
+### Behavior Rules
+- **Exclude takes precedence** - If a package matches both include and exclude, it will be excluded
+- **Hierarchical matching** - `com/example` will match `com/example/core/Service`
+- **No rules = process all** - If no include/exclude rules are specified, all packages are processed
+- **Validation** - Invalid package names will generate configuration errors
+
 ## Configuration File Examples
+
+### Enhanced Configuration (`config-examples/enhanced.json`)
+```json
+{
+  "obfuscationLevel": "AGGRESSIVE",
+  "mainClass": "com/example/MyApp",
+  
+  "obfuscation": {
+    "renameClasses": true,
+    "renameFields": true,
+    "renameMethods": true,
+    "renameLocalVariables": true,
+    "obfuscateConditions": true,
+    "compressStrings": true,
+    "shuffleMembers": true,
+    "optimizeCode": true
+  },
+  
+  "naming": {
+    "namingMode": "RANDOM_SHORT"
+  },
+  
+  "security": {
+    "antiDebugging": true,
+    "debuggerAction": "CORRUPT_EXECUTION"
+  },
+  
+  "packages": {
+    "includePackages": ["com/example/core", "com/example/business"],
+    "excludePackages": ["com/example/test", "com/example/debug"]
+  },
+  
+  "keepRules": {
+    "keepMainClass": true,
+    "keepStandardEntryPoints": true,
+    "keepClasses": ["com/example/api/PublicAPI"],
+    "keepClassPatterns": [".*Controller", ".*Exception"]
+  },
+  
+  "debugging": {
+    "preserveLineNumbers": false,
+    "verbose": false,
+    "generateScore": true
+  },
+  
+  "performance": {
+    "maxThreads": 4,
+    "sequentialTransformers": false
+  },
+  
+  "backup": {
+    "enableBackup": true,
+    "backupDir": "./backups"
+  }
+}
+```
 
 ### Basic Configuration (`config-examples/basic.json`)
 ```json
 {
+  "obfuscationLevel": "BASIC",
   "mainClass": "com/example/Main",
-  "renameClasses": true,
-  "renameFields": true,
-  "renameMethods": true,
-  "renameLocalVariables": true,
-  "obfuscateConditions": true,
-  "namingMode": "SEQUENTIAL_PREFIX",
-  "verbose": true,
   "keepRules": {
     "keepMainClass": true,
     "keepStandardEntryPoints": true
+  },
+  "debugging": {
+    "verbose": true
   }
 }
 ```
@@ -548,22 +974,140 @@ obfuscator.getEngine().registerTransformer(new CustomTransformer());
 
 ### Configuration Validation
 
-```java
-ObfuscationConfig config = // ... your config
+The enhanced validation system provides comprehensive checking with detailed feedback:
 
+```java
+// Validate complete configuration
+ObfuscationConfig config = // ... your config
 ConfigValidator.ValidationResult result = ConfigValidator.validate(config);
 
 if (result.hasErrors()) {
     System.err.println("Configuration errors:");
-    result.getErrors().forEach(error -> System.err.println("  - " + error));
+    result.getErrors().forEach(error -> System.err.println("  ❌ " + error));
     return;
 }
 
 if (result.hasWarnings()) {
     System.out.println("Configuration warnings:");
-    result.getWarnings().forEach(warning -> System.out.println("  - " + warning));
+    result.getWarnings().forEach(warning -> System.out.println("  ⚠️ " + warning));
 }
+
+// Validate builder before building
+ObfuscationConfig.Builder builder = new ObfuscationConfig.Builder()
+    .renameClasses(true)
+    .maxThreads(0); // Invalid setting
+
+if (!builder.isValid()) {
+    ConfigValidator.ValidationResult validation = builder.validate();
+    validation.getErrors().forEach(System.err::println);
+}
+
+ObfuscationConfig config = builder.build(); // Will throw if invalid
 ```
+
+### Validation Features
+
+- **Package name validation** - Ensures valid Java package names
+- **Class name validation** - Checks for valid class names and patterns
+- **Performance settings** - Validates thread counts and backup directories
+- **Consistency checks** - Detects conflicting settings
+- **Security warnings** - Identifies potential security issues
+- **Best practice recommendations** - Suggests optimal configurations
+
+### Common Validation Messages
+
+| Type | Message | Solution |
+|------|---------|----------|
+| Error | "Max threads must be at least 1" | Set `maxThreads` to 1 or higher |
+| Error | "Backup enabled but no directory specified" | Set `backupDir` when `enableBackup` is true |
+| Warning | "Anti-debugging enabled but line numbers preserved" | Disable `preserveLineNumbers` for better security |
+| Warning | "Include package is within excluded package" | Review package include/exclude rules |
+
+## ⚡ Performance & Threading
+
+The obfuscator supports multi-threaded processing and performance optimization:
+
+### Threading Configuration
+
+```java
+// Configure thread count
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .maxThreads(8)                    // Use 8 threads
+    .sequentialTransformers(false)    // Enable parallel processing
+    .build();
+
+// Auto-detect optimal thread count
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .maxThreads(Runtime.getRuntime().availableProcessors())
+    .build();
+```
+
+### Sequential vs Parallel Processing
+
+#### Parallel Processing (Default)
+- Each transformer processes all classes simultaneously
+- Better performance for large projects
+- Uses multiple CPU cores efficiently
+
+#### Sequential Processing
+- Each transformer processes one class at a time
+- More predictable memory usage
+- Better for memory-constrained environments
+
+```java
+// Enable sequential processing
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .sequentialTransformers(true)
+    .maxThreads(1)  // Limited threading benefit with sequential
+    .build();
+```
+
+### Performance Optimization
+
+```java
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .optimizeCode(true)           // Enable bytecode optimization
+    .maxThreads(8)               // Utilize multiple cores
+    .sequentialTransformers(false) // Parallel processing
+    .enableBackup(false)         // Skip backup for speed (not recommended)
+    .verbose(false)              // Reduce logging overhead
+    .build();
+```
+
+### Backup System
+
+Automatic backup creation with configurable options:
+
+```java
+ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .enableBackup(true)
+    .backupDir("./backups")      // Custom backup directory
+    .build();
+```
+
+### CLI Options
+```bash
+# Performance-optimized processing
+java -jar obfuscator.jar input.jar output.jar \
+  --max-threads 8 \
+  --optimize-code \
+  --enable-backup \
+  --backup-dir ./backups
+
+# Memory-efficient processing
+java -jar obfuscator.jar input.jar output.jar \
+  --max-threads 2 \
+  --sequential \
+  --no-backup
+```
+
+### Performance Tips
+
+1. **Use appropriate thread count** - Usually CPU cores × 1-2
+2. **Enable code optimization** - Improves output quality
+3. **Disable backup for speed** - Only in development/testing
+4. **Use sequential for large JARs** - Better memory management
+5. **Monitor memory usage** - Adjust thread count if needed
 
 ### Mapping File Format
 
@@ -585,9 +1129,39 @@ com/example/Service.processData(Ljava/lang/String;)I -> b.a(Ljava/lang/String;)I
 
 ## Configuration Examples
 
-### Minimal Obfuscation
+### Using Obfuscation Levels
+```java
+// Quick preset selection
+ObfuscationConfig minimal = ConfigPresets.createPresetForLevel(ObfuscationLevel.MINIMAL)
+    .mainClass("com/example/Main")
+    .keepMainClass()
+    .build();
+
+// Production-ready configuration
+ObfuscationConfig production = ConfigPresets.createProductionObfuscation()
+    .mainClass("com/example/Main")
+    .keepMainClass()
+    .build();
+
+// Development configuration with debugging
+ObfuscationConfig development = ConfigPresets.createDevelopmentObfuscation()
+    .mainClass("com/example/Main")
+    .keepMainClass()
+    .build();
+
+// Maximum security configuration
+ObfuscationConfig secure = ConfigPresets.createSecureObfuscation()
+    .mainClass("com/example/Main")
+    .keepMainClass()
+    .build();
+```
+
+### Custom Configurations
+
+#### Minimal Obfuscation
 ```java
 ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .obfuscationLevel(ObfuscationLevel.MINIMAL)
     .renameClasses(false)
     .renameFields(true)      // Only obfuscate fields
     .renameMethods(false)
@@ -596,15 +1170,29 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
     .build();
 ```
 
-### Aggressive Obfuscation
+#### Aggressive Obfuscation
 ```java
 ObfuscationConfig config = new ObfuscationConfig.Builder()
+    .obfuscationLevel(ObfuscationLevel.AGGRESSIVE)
     .renameClasses(true)
     .renameFields(true)
     .renameMethods(true)
     .renameLocalVariables(true)
+    .obfuscateConditions(true)
+    .antiDebugging(true)
+    .shuffleMembers(true)
     .namingMode(NamingMode.RANDOM_LONG)
-    .keepStandardEntryPoints()  // Minimal keep rules for maximum obfuscation
+    .keepStandardEntryPoints()
+    .build();
+```
+
+#### Performance-Optimized
+```java
+ObfuscationConfig config = ConfigPresets.createPerformanceOptimizedObfuscation()
+    .mainClass("com/example/Main")
+    .maxThreads(Runtime.getRuntime().availableProcessors())
+    .optimizeCode(true)
+    .keepMainClass()
     .build();
 ```
 
@@ -768,6 +1356,50 @@ ObfuscationConfig config = ConfigPresets.createDebugObfuscation()
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Changelog
+
+### Version 2.0.0 - Enhanced Configuration System
+#### 🎚️ Obfuscation Levels
+- Added pre-defined security levels (MINIMAL, BASIC, AGGRESSIVE, EXTREME, CUSTOM)
+- Created preset configurations for common use cases
+- Quick level selection via CLI and programmatic API
+
+#### 📦 Package Filtering
+- Include/exclude package filtering with hierarchical matching
+- Fine-grained control over which packages to process
+- Validation and conflict detection for package rules
+
+#### ⚡ Performance & Threading
+- Multi-threaded processing with configurable thread counts
+- Sequential vs parallel transformer processing modes
+- Performance optimization settings and recommendations
+- Automatic backup system with configurable directories
+
+#### 🔧 Enhanced Configuration
+- Nested JSON configuration structure for better organization
+- Custom settings support for extensibility
+- String compression with deflate/base64 encoding
+- Member shuffling and code optimization options
+- Advanced debugging preservation options
+
+#### ✅ Improved Validation
+- Comprehensive configuration validation with detailed feedback
+- Real-time validation during configuration building
+- Best practice recommendations and security warnings
+- Package name and class name validation
+
+#### 🛠️ New Features
+- String compression using deflate/base64 encoding
+- Anti-debugging protection with configurable responses
+- Line number and local variable preservation options
+- Obfuscation resistance scoring improvements
+- Enhanced CLI with categorized options
+- Builder pattern validation before configuration creation
+
+#### 📄 Documentation
+- Comprehensive README with all new features
+- Enhanced configuration examples
+- Performance tuning guidelines
+- Troubleshooting section improvements
 
 ### Version 1.1.0
 - Added multiple naming modes (SEQUENTIAL_PREFIX, SEQUENTIAL_ALPHA, RANDOM_SHORT, RANDOM_LONG, SINGLE_CHAR)

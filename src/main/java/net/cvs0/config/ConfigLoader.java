@@ -2,6 +2,7 @@ package net.cvs0.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import net.cvs0.utils.AntiDebugger;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,6 +22,9 @@ public class ConfigLoader
         
         parseBasicSettings(root, builder);
         parseKeepRules(root, builder);
+        parseAdvancedSettings(root, builder);
+        parsePackageSettings(root, builder);
+        parsePerformanceSettings(root, builder);
         
         return builder;
     }
@@ -31,28 +35,75 @@ public class ConfigLoader
             builder.mainClass(root.get("mainClass").asText());
         }
         
-        if (root.has("renameClasses")) {
-            builder.renameClasses(root.get("renameClasses").asBoolean());
+        if (root.has("obfuscationLevel")) {
+            String levelStr = root.get("obfuscationLevel").asText();
+            try {
+                ObfuscationConfig.ObfuscationLevel level = ObfuscationConfig.ObfuscationLevel.valueOf(levelStr.toUpperCase());
+                builder.obfuscationLevel(level);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Warning: Invalid obfuscation level '" + levelStr + "', using default");
+            }
         }
         
-        if (root.has("renameFields")) {
-            builder.renameFields(root.get("renameFields").asBoolean());
+        parseObfuscationSettings(root, builder);
+        parseNamingSettings(root, builder);
+        parseSecuritySettings(root, builder);
+        parseDebuggingSettings(root, builder);
+        
+        if (root.has("verbose")) {
+            builder.verbose(root.get("verbose").asBoolean());
         }
         
-        if (root.has("renameMethods")) {
-            builder.renameMethods(root.get("renameMethods").asBoolean());
+        if (root.has("sequentialTransformers")) {
+            builder.sequentialTransformers(root.get("sequentialTransformers").asBoolean());
+        }
+    }
+    
+    private void parseObfuscationSettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        JsonNode obfuscation = root.get("obfuscation");
+        if (obfuscation == null) obfuscation = root;
+        
+        if (obfuscation.has("renameClasses")) {
+            builder.renameClasses(obfuscation.get("renameClasses").asBoolean());
         }
         
-        if (root.has("renameLocalVariables")) {
-            builder.renameLocalVariables(root.get("renameLocalVariables").asBoolean());
+        if (obfuscation.has("renameFields")) {
+            builder.renameFields(obfuscation.get("renameFields").asBoolean());
         }
         
-        if (root.has("obfuscateConditions")) {
-            builder.obfuscateConditions(root.get("obfuscateConditions").asBoolean());
+        if (obfuscation.has("renameMethods")) {
+            builder.renameMethods(obfuscation.get("renameMethods").asBoolean());
         }
         
-        if (root.has("namingMode")) {
-            String namingModeStr = root.get("namingMode").asText();
+        if (obfuscation.has("renameLocalVariables")) {
+            builder.renameLocalVariables(obfuscation.get("renameLocalVariables").asBoolean());
+        }
+        
+        if (obfuscation.has("obfuscateConditions")) {
+            builder.obfuscateConditions(obfuscation.get("obfuscateConditions").asBoolean());
+        }
+        
+        if (obfuscation.has("compressStrings")) {
+            builder.compressStrings(obfuscation.get("compressStrings").asBoolean());
+        }
+        
+        if (obfuscation.has("shuffleMembers")) {
+            builder.shuffleMembers(obfuscation.get("shuffleMembers").asBoolean());
+        }
+        
+        if (obfuscation.has("optimizeCode")) {
+            builder.optimizeCode(obfuscation.get("optimizeCode").asBoolean());
+        }
+    }
+    
+    private void parseNamingSettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        JsonNode naming = root.get("naming");
+        if (naming == null) naming = root;
+        
+        if (naming.has("namingMode")) {
+            String namingModeStr = naming.get("namingMode").asText();
             try {
                 NamingMode namingMode = NamingMode.valueOf(namingModeStr);
                 builder.namingMode(namingMode);
@@ -60,9 +111,137 @@ public class ConfigLoader
                 System.err.println("Warning: Invalid naming mode '" + namingModeStr + "', using default");
             }
         }
+    }
+    
+    private void parseSecuritySettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        JsonNode security = root.get("security");
+        if (security == null) security = root;
         
-        if (root.has("verbose")) {
-            builder.verbose(root.get("verbose").asBoolean());
+        if (security.has("antiDebugging")) {
+            builder.antiDebugging(security.get("antiDebugging").asBoolean());
+        }
+        
+        if (security.has("debuggerAction")) {
+            String debuggerActionStr = security.get("debuggerAction").asText();
+            try {
+                AntiDebugger.DebuggerAction debuggerAction = AntiDebugger.DebuggerAction.valueOf(debuggerActionStr);
+                builder.debuggerAction(debuggerAction);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Warning: Invalid debugger action '" + debuggerActionStr + "', using default");
+            }
+        }
+    }
+    
+    private void parseDebuggingSettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        JsonNode debugging = root.get("debugging");
+        if (debugging == null) debugging = root;
+        
+        if (debugging.has("preserveLineNumbers")) {
+            builder.preserveLineNumbers(debugging.get("preserveLineNumbers").asBoolean());
+        }
+        
+        if (debugging.has("preserveLocalVariableNames")) {
+            builder.preserveLocalVariableNames(debugging.get("preserveLocalVariableNames").asBoolean());
+        }
+        
+        if (debugging.has("verbose")) {
+            builder.verbose(debugging.get("verbose").asBoolean());
+        }
+        
+        if (debugging.has("generateScore")) {
+            builder.generateScore(debugging.get("generateScore").asBoolean());
+        }
+    }
+    
+    private void parseAdvancedSettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        if (root.has("preserveLineNumbers")) {
+            builder.preserveLineNumbers(root.get("preserveLineNumbers").asBoolean());
+        }
+        
+        if (root.has("preserveLocalVariableNames")) {
+            builder.preserveLocalVariableNames(root.get("preserveLocalVariableNames").asBoolean());
+        }
+        
+        if (root.has("optimizeCode")) {
+            builder.optimizeCode(root.get("optimizeCode").asBoolean());
+        }
+        
+        if (root.has("compressStrings")) {
+            builder.compressStrings(root.get("compressStrings").asBoolean());
+        }
+        
+        if (root.has("shuffleMembers")) {
+            builder.shuffleMembers(root.get("shuffleMembers").asBoolean());
+        }
+        
+        JsonNode customSettings = root.get("customSettings");
+        if (customSettings != null && customSettings.isObject()) {
+            customSettings.fields().forEachRemaining(entry -> {
+                String key = entry.getKey();
+                JsonNode value = entry.getValue();
+                
+                if (value.isTextual()) {
+                    builder.customSetting(key, value.asText());
+                } else if (value.isBoolean()) {
+                    builder.customSetting(key, value.asBoolean());
+                } else if (value.isNumber()) {
+                    if (value.isInt()) {
+                        builder.customSetting(key, value.asInt());
+                    } else {
+                        builder.customSetting(key, value.asDouble());
+                    }
+                } else {
+                    builder.customSetting(key, value.toString());
+                }
+            });
+        }
+    }
+    
+    private void parsePackageSettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        JsonNode packages = root.get("packages");
+        if (packages == null) packages = root;
+        
+        JsonNode excludePackages = packages.get("excludePackages");
+        if (excludePackages != null && excludePackages.isArray()) {
+            for (JsonNode packageNode : excludePackages) {
+                builder.excludePackage(packageNode.asText());
+            }
+        }
+        
+        JsonNode includePackages = packages.get("includePackages");
+        if (includePackages != null && includePackages.isArray()) {
+            for (JsonNode packageNode : includePackages) {
+                builder.includePackage(packageNode.asText());
+            }
+        }
+    }
+    
+    private void parsePerformanceSettings(JsonNode root, ObfuscationConfig.Builder builder)
+    {
+        JsonNode performance = root.get("performance");
+        if (performance == null) performance = root;
+        
+        if (performance.has("maxThreads")) {
+            builder.maxThreads(performance.get("maxThreads").asInt());
+        }
+        
+        if (performance.has("sequentialTransformers")) {
+            builder.sequentialTransformers(performance.get("sequentialTransformers").asBoolean());
+        }
+        
+        JsonNode backup = root.get("backup");
+        if (backup == null) backup = root;
+        
+        if (backup.has("enableBackup")) {
+            builder.enableBackup(backup.get("enableBackup").asBoolean());
+        }
+        
+        if (backup.has("backupDir")) {
+            builder.backupDir(backup.get("backupDir").asText());
         }
     }
     

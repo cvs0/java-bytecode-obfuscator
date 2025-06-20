@@ -2,6 +2,56 @@ package net.cvs0.config;
 
 public class ConfigPresets
 {
+    public static ObfuscationConfig.Builder createPresetForLevel(ObfuscationConfig.ObfuscationLevel level)
+    {
+        return new ObfuscationConfig.Builder().obfuscationLevel(level);
+    }
+    
+    public static ObfuscationConfig.Builder createProductionObfuscation()
+    {
+        return new ObfuscationConfig.Builder()
+                .obfuscationLevel(ObfuscationConfig.ObfuscationLevel.AGGRESSIVE)
+                .enableBackup(true)
+                .generateScore(true)
+                .optimizeCode(true)
+                .compressStrings(true)
+                .shuffleMembers(true)
+                .keepStandardEntryPoints();
+    }
+    
+    public static ObfuscationConfig.Builder createDevelopmentObfuscation()
+    {
+        return new ObfuscationConfig.Builder()
+                .obfuscationLevel(ObfuscationConfig.ObfuscationLevel.BASIC)
+                .verbose(true)
+                .preserveLineNumbers(true)
+                .enableBackup(true)
+                .keepStandardEntryPoints();
+    }
+    
+    public static ObfuscationConfig.Builder createSecureObfuscation()
+    {
+        return new ObfuscationConfig.Builder()
+                .obfuscationLevel(ObfuscationConfig.ObfuscationLevel.EXTREME)
+                .antiDebugging(true)
+                .generateScore(true)
+                .optimizeCode(true)
+                .compressStrings(true)
+                .shuffleMembers(true)
+                .enableBackup(true)
+                .keepMainClass()
+                .keepStandardEntryPoints();
+    }
+    
+    public static ObfuscationConfig.Builder createPerformanceOptimizedObfuscation()
+    {
+        return new ObfuscationConfig.Builder()
+                .obfuscationLevel(ObfuscationConfig.ObfuscationLevel.BASIC)
+                .maxThreads(Runtime.getRuntime().availableProcessors())
+                .optimizeCode(true)
+                .sequentialTransformers(false)
+                .keepStandardEntryPoints();
+    }
     public static ObfuscationConfig.Builder createBasicObfuscation()
     {
         return new ObfuscationConfig.Builder()

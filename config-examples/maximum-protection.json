@@ -1,0 +1,17 @@
+{
+  "mainClass": "com/example/SecureApplication",
+  "renameClasses": true,
+  "renameFields": true,
+  "renameMethods": true,
+  "renameLocalVariables": true,
+  "obfuscateConditions": true,
+  "antiDebugging": true,
+  "debuggerAction": "CORRUPT_EXECUTION",
+  "generateScore": true,
+  "namingMode": "RANDOM_LONG",
+  "verbose": false,
+  "keepRules": {
+    "keepMainClass": true,
+    "keepStandardEntryPoints": true
+  }
+}
