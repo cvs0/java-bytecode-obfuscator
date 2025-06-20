@@ -10,6 +10,7 @@ import net.cvs0.transformers.ConditionObfuscationTransformer;
 
 import java.io.File;
 import java.io.IOException;
+import net.cvs0.mappings.export.MappingExporter;
 
 public class Obfuscator
 {
@@ -33,6 +34,11 @@ public class Obfuscator
     public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile) throws IOException
     {
         engine.obfuscate(inputJar, outputJar, config, mappingsFile);
+    }
+    
+    public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile, MappingExporter.MappingFormat format) throws IOException
+    {
+        engine.obfuscate(inputJar, outputJar, config, mappingsFile, format);
     }
     
     public ObfuscationEngine getEngine()

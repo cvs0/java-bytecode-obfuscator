@@ -7,6 +7,7 @@ import picocli.CommandLine.Parameters;
 import net.cvs0.config.ObfuscationConfig;
 import net.cvs0.config.ConfigLoader;
 import net.cvs0.config.NamingMode;
+import net.cvs0.mappings.export.MappingExporter;
 import net.cvs0.utils.Logger;
 
 import java.io.File;
@@ -46,6 +47,18 @@ public class Main implements Callable<Integer>
 
     @Option(names = {"--mappings", "--output-mappings"}, description = "Output mappings file")
     private File mappingsFile;
+
+    @Option(names = {"--mapping-format"}, 
+            description = "Mapping output format (default: auto-detect from file extension):%n" +
+                         "  PROGUARD - ProGuard mapping format%n" +
+                         "  SRG - SRG (Mod Coder Pack) format%n" +
+                         "  TINY - Tiny mapping format%n" +
+                         "  JSON - JSON format%n" +
+                         "  CSV - CSV format%n" +
+                         "  HUMAN_READABLE - Human readable format%n" +
+                         "  RETRACE - Retrace format%n" +
+                         "  ALL - Export all formats")
+    private String mappingFormat;
 
     @Option(names = {"-v", "--verbose"}, description = "Enable verbose output")
     private boolean verbose;
@@ -99,8 +112,10 @@ public class Main implements Callable<Integer>
                 System.out.println();
             }
 
+            MappingExporter.MappingFormat format = parseMappingFormat();
+            
             Obfuscator obfuscator = new Obfuscator();
-            obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile);
+            obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile, format);
 
             return 0;
             
@@ -199,5 +214,19 @@ public class Main implements Callable<Integer>
         }
         
         return builder.build();
+    }
+    
+    private MappingExporter.MappingFormat parseMappingFormat()
+    {
+        if (mappingFormat == null || mappingFormat.equalsIgnoreCase("AUTO")) {
+            return null;
+        }
+        
+        try {
+            return MappingExporter.MappingFormat.valueOf(mappingFormat.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Warning: Unknown mapping format '" + mappingFormat + "', using auto-detection");
+            return null;
+        }
     }
 }

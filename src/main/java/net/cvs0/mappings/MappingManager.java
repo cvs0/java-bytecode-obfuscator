@@ -163,12 +163,7 @@ public class MappingManager
             return false;
         }
         
-        String packageScope = config.getPackageScope();
-        if (packageScope != null && !packageScope.isEmpty() && className != null) {
-            return className.startsWith(packageScope);
-        }
-        
-        return true;
+        return config.isInPackageScope(className);
     }
     
     private boolean shouldRenameField(String owner, String fieldName)

@@ -108,7 +108,7 @@ public class ObfuscationConfig
     public boolean isInPackageScope(String className)
     {
         if (packageScope == null || packageScope.isEmpty()) {
-            return true;
+            return false;
         }
         if (className == null) {
             return false;
