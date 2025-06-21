@@ -9,6 +9,7 @@ import net.cvs0.transformers.MethodRenameTransformer;
 import net.cvs0.transformers.LocalVariableRenameTransformer;
 import net.cvs0.transformers.ConditionObfuscationTransformer;
 import net.cvs0.transformers.StringCompressionTransformer;
+
 import net.cvs0.utils.AntiDebugger;
 
 import java.io.File;
@@ -33,22 +34,6 @@ public class Obfuscator
         engine.registerTransformer(new ConditionObfuscationTransformer());
         engine.registerTransformer(new LocalVariableRenameTransformer());
         engine.registerTransformer(new StringCompressionTransformer());
-    }
-    
-    public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile) throws IOException
-    {
-        if (inputJar == null) {
-            throw new IllegalArgumentException("Input JAR file cannot be null");
-        }
-        if (outputJar == null) {
-            throw new IllegalArgumentException("Output JAR file cannot be null");
-        }
-        if (config == null) {
-            throw new IllegalArgumentException("Obfuscation config cannot be null");
-        }
-        
-        setupConditionalTransformers(config);
-        engine.obfuscate(inputJar, outputJar, config, mappingsFile);
     }
     
     public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile, MappingExporter.MappingFormat format) throws IOException

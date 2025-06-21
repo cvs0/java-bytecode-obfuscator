@@ -38,7 +38,8 @@ public class TransformationContext
     private void initializeDefaults()
     {
         setGlobalProperty("verbose", config.isVerbose());
-        setGlobalProperty("config.packageScope", config.getPackageScope());
+        String packageScope = config.getPackageScope();
+        setGlobalProperty("config.packageScope", packageScope != null ? packageScope : "");
         setGlobalProperty("transformation.startTime", startTime);
         setGlobalProperty("transformation.thread", Thread.currentThread().getName());
     }

@@ -1,25 +1,16 @@
 package net.cvs0.transformers;
 
 import net.cvs0.context.ObfuscationContext;
-import net.cvs0.core.AbstractClassVisitor;
-import net.cvs0.core.AbstractTransformer;
+import net.cvs0.core.UniversalTransformer;
 import net.cvs0.utils.StringCompressionMethodVisitor;
-import org.objectweb.asm.*;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
 
-public class StringCompressionTransformer extends AbstractTransformer
+public class StringCompressionTransformer extends UniversalTransformer
 {
-    
     public StringCompressionTransformer()
     {
         super("StringCompression", 350);
-    }
-    
-    @Override
-    public void transform(ClassReader reader, ClassWriter writer, ObfuscationContext context)
-    {
-        logTransformation("Applying string compression", context);
-        ClassVisitor visitor = new StringCompressionClassVisitor(writer, context);
-        reader.accept(visitor, 0);
     }
     
     @Override
@@ -27,10 +18,16 @@ public class StringCompressionTransformer extends AbstractTransformer
     {
         return context.getConfig().isCompressStrings();
     }
-    
-    private static class StringCompressionClassVisitor extends AbstractClassVisitor
+
+    @Override
+    protected UniversalClassVisitor createClassVisitor(ClassWriter writer, ObfuscationContext context)
     {
-        public StringCompressionClassVisitor(ClassVisitor classVisitor, ObfuscationContext context)
+        return new StringCompressionClassVisitor(writer, context);
+    }
+    
+    private static class StringCompressionClassVisitor extends UniversalClassVisitor
+    {
+        public StringCompressionClassVisitor(ClassWriter classVisitor, ObfuscationContext context)
         {
             super(classVisitor, context);
         }
@@ -42,10 +39,9 @@ public class StringCompressionTransformer extends AbstractTransformer
         }
         
         @Override
-        protected MethodVisitor createMethodVisitor(MethodVisitor mv, int access, String name, 
-                                                  String descriptor, String signature, String[] exceptions)
+        protected MethodVisitor createMethodVisitor(MethodVisitor mv, int access, String name, String descriptor)
         {
-            return new StringCompressionMethodVisitor(mv, context, currentClassName, name, descriptor);
+            return new StringCompressionMethodVisitor(mv, this, name, descriptor);
         }
     }
 }

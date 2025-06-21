@@ -43,7 +43,7 @@ public class MappingManager
     
     public void generateFieldMapping(String owner, String fieldName, String descriptor)
     {
-        if (fieldName == null) {
+        if (fieldName == null || owner == null) {
             return;
         }
         
@@ -55,6 +55,7 @@ public class MappingManager
                 
                 if (inheritedMapping != null) {
                     fieldMappings.put(key, inheritedMapping);
+                    propagateFieldRename(owner, fieldName, inheritedMapping);
                 } else {
                     String newName = fieldNameGenerator.generateName(owner, fieldName, descriptor);
                     fieldMappings.put(key, newName);
@@ -64,6 +65,20 @@ public class MappingManager
                     }
                 }
             }
+        }
+    }
+    
+    public void ensureFieldMapping(String owner, String fieldName, String newName)
+    {
+        if (fieldName == null || owner == null || newName == null) {
+            return;
+        }
+        
+        String key = owner + "." + fieldName;
+        fieldMappings.put(key, newName);
+        
+        if (inheritanceTracker != null) {
+            propagateFieldRename(owner, fieldName, newName);
         }
     }
     

@@ -1,6 +1,8 @@
 package net.cvs0.utils;
 
 import net.cvs0.context.ObfuscationContext;
+import net.cvs0.core.ContextProvider;
+import net.cvs0.core.UniversalTransformer;
 import org.objectweb.asm.*;
 
 import java.nio.charset.StandardCharsets;
@@ -9,25 +11,23 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class StringCompressionMethodVisitor extends MethodVisitor
+public class StringCompressionMethodVisitor extends UniversalTransformer.UniversalMethodVisitor
 {
-    private final ObfuscationContext context;
-    private final String className;
-    private final String methodName;
-    private final String methodDescriptor;
     private static final int MIN_STRING_LENGTH = 10;
     private static final double COMPRESSION_PROBABILITY = 0.7;
     
-    public StringCompressionMethodVisitor(MethodVisitor methodVisitor, ObfuscationContext context,
-                                        String className, String methodName, String methodDescriptor)
+    public StringCompressionMethodVisitor(MethodVisitor methodVisitor, ContextProvider contextProvider,
+                                        String methodName, String methodDescriptor)
     {
-        super(Opcodes.ASM9, methodVisitor);
-        this.context = context;
-        this.className = className;
-        this.methodName = methodName;
-        this.methodDescriptor = methodDescriptor;
+        super(methodVisitor, contextProvider, methodName, methodDescriptor);
     }
     
+    @Override
+    protected String getTransformerName()
+    {
+        return "StringCompression";
+    }
+
     @Override
     public void visitLdcInsn(Object value)
     {
@@ -38,10 +38,7 @@ public class StringCompressionMethodVisitor extends MethodVisitor
             if (compressedData != null && compressedData.length() < originalString.length()) {
                 generateDecompressionCode(compressedData);
                 
-                if (context.getConfig().isVerbose()) {
-                    System.out.println("🗜️  Compressed string in " + className + "." + methodName + 
-                                     " (saved " + (originalString.length() - compressedData.length()) + " chars)");
-                }
+                logTransformation("Compressed string (saved " + (originalString.length() - compressedData.length()) + " chars)");
                 return;
             }
         }
@@ -55,7 +52,7 @@ public class StringCompressionMethodVisitor extends MethodVisitor
             return false;
         }
         
-        if (context.getConfig().shouldKeepClass(className)) {
+        if (getContext().getConfig().shouldKeepClass(getCurrentClassName())) {
             return false;
         }
         

@@ -227,7 +227,7 @@ public class ObfuscationEngine
     
     private byte[] transformClass(ClassReader reader, ObfuscationContext context, String className) throws Exception
     {
-        ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
         
         ClassReader currentReader = reader;
         ClassWriter currentWriter = writer;
@@ -236,10 +236,14 @@ public class ObfuscationEngine
             for (Transformer transformer : transformers) {
                 if (transformer.isEnabled(context)) {
                     try {
-                        ClassWriter nextWriter = new ClassWriter(currentReader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
+                        ClassWriter nextWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS);
                         transformer.transform(currentReader, nextWriter, context);
                         
                         byte[] transformedBytes = nextWriter.toByteArray();
+                        if (transformedBytes == null || transformedBytes.length == 0) {
+                            Logger.error("Transformer " + transformer.getName() + " produced empty bytecode for class " + className + " - skipping further transformations");
+                            break;
+                        }
                         
                         ClassReader testReader = new ClassReader(transformedBytes);
                         String testClassName = testReader.getClassName();
@@ -260,7 +264,13 @@ public class ObfuscationEngine
             }
         }
         
-        return currentWriter.toByteArray();
+        byte[] result = currentWriter.toByteArray();
+        if (result == null || result.length == 0) {
+            Logger.warning("Final transformation produced empty bytecode for class " + className + " - using original");
+            return reader.b;
+        }
+        
+        return result;
     }
     
     private Map<String, byte[]> obfuscateSequentially(Map<String, byte[]> inputClasses, ObfuscationConfig config, ObfuscationContext context) throws IOException

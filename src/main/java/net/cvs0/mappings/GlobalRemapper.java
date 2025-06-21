@@ -31,8 +31,7 @@ public class GlobalRemapper extends Remapper
             return name;
         }
         try {
-            String mappedOwner = mappingManager.getClassMapping(owner);
-            return mappingManager.getMethodMapping(mappedOwner, name, descriptor);
+            return mappingManager.getMethodMapping(owner, name, descriptor);
         } catch (Exception e) {
             return name;
         }
@@ -45,8 +44,7 @@ public class GlobalRemapper extends Remapper
             return name;
         }
         try {
-            String mappedOwner = mappingManager.getClassMapping(owner);
-            return mappingManager.getFieldMapping(mappedOwner, name);
+            return mappingManager.getFieldMapping(owner, name);
         } catch (Exception e) {
             return name;
         }

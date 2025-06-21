@@ -732,9 +732,7 @@ public class ObfuscationConfig
         
         public Builder keepStandardEntryPoints()
         {
-            keepClassMethodPattern(".*", "main\\(\\[Ljava/lang/String;\\)V");
-            keepClassMethodPattern(".*", "<init>");
-            keepClassMethodPattern(".*", "<clinit>");
+            KeepRulesManager.applyRulesToBuilder(this, "STANDARD_ENTRY_POINTS");
             return this;
         }
         
