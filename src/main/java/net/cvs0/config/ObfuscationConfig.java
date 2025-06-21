@@ -18,6 +18,8 @@ public class ObfuscationConfig
     private final NamingMode namingMode;
     private final boolean antiDebugging;
     private final AntiDebugger.DebuggerAction debuggerAction;
+    private final boolean vmDetection;
+    private final AntiDebugger.VMDetectionLevel vmDetectionLevel;
     private final boolean generateScore;
     private final boolean sequentialTransformers;
     private final ObfuscationLevel obfuscationLevel;
@@ -67,6 +69,8 @@ public class ObfuscationConfig
             NamingMode namingMode,
             boolean antiDebugging,
             AntiDebugger.DebuggerAction debuggerAction,
+            boolean vmDetection,
+            AntiDebugger.VMDetectionLevel vmDetectionLevel,
             boolean generateScore,
             boolean sequentialTransformers,
             ObfuscationLevel obfuscationLevel,
@@ -82,7 +86,11 @@ public class ObfuscationConfig
             boolean enableBackup,
             String backupDir)
     {
-        this.mainClass = mainClass;
+        validateConfigurationInputs(mainClass, packageScope, maxThreads, backupDir, enableBackup, 
+                                   customSettings, excludePackages, includePackages,
+                                   renameLocalVariables, preserveLocalVariableNames);
+        
+        this.mainClass = sanitizeClassName(mainClass);
         this.renameClasses = renameClasses;
         this.renameFields = renameFields;
         this.renameMethods = renameMethods;
@@ -90,24 +98,191 @@ public class ObfuscationConfig
         this.obfuscateConditions = obfuscateConditions;
         this.verbose = verbose;
         this.keepRules = keepRules != null ? keepRules : new KeepRules();
-        this.packageScope = packageScope;
+        this.packageScope = sanitizePackageScope(packageScope);
         this.namingMode = namingMode != null ? namingMode : NamingMode.SEQUENTIAL_PREFIX;
         this.antiDebugging = antiDebugging;
         this.debuggerAction = debuggerAction != null ? debuggerAction : AntiDebugger.DebuggerAction.EXIT_SILENTLY;
+        this.vmDetection = vmDetection;
+        this.vmDetectionLevel = vmDetectionLevel != null ? vmDetectionLevel : AntiDebugger.VMDetectionLevel.BASIC;
         this.generateScore = generateScore;
         this.sequentialTransformers = sequentialTransformers;
         this.obfuscationLevel = obfuscationLevel != null ? obfuscationLevel : ObfuscationLevel.BASIC;
-        this.customSettings = customSettings != null ? new HashMap<>(customSettings) : new HashMap<>();
-        this.excludePackages = excludePackages != null ? new ArrayList<>(excludePackages) : new ArrayList<>();
-        this.includePackages = includePackages != null ? new ArrayList<>(includePackages) : new ArrayList<>();
+        this.customSettings = sanitizeCustomSettings(customSettings);
+        this.excludePackages = sanitizePackageList(excludePackages, "excludePackages");
+        this.includePackages = sanitizePackageList(includePackages, "includePackages");
         this.preserveLineNumbers = preserveLineNumbers;
         this.preserveLocalVariableNames = preserveLocalVariableNames;
         this.optimizeCode = optimizeCode;
         this.compressStrings = compressStrings;
         this.shuffleMembers = shuffleMembers;
-        this.maxThreads = maxThreads > 0 ? maxThreads : Runtime.getRuntime().availableProcessors();
+        this.maxThreads = validateMaxThreads(maxThreads);
         this.enableBackup = enableBackup;
-        this.backupDir = backupDir;
+        this.backupDir = sanitizeBackupDir(backupDir, enableBackup);
+    }
+    
+    private void validateConfigurationInputs(String mainClass, String packageScope, int maxThreads,
+                                           String backupDir, boolean enableBackup,
+                                           Map<String, Object> customSettings,
+                                           List<String> excludePackages, List<String> includePackages,
+                                           boolean renameLocalVariables, boolean preserveLocalVariableNames)
+    {
+        if (mainClass != null && mainClass.length() > 1000) {
+            throw new IllegalArgumentException("Main class name is too long (> 1000 characters)");
+        }
+        
+        if (packageScope != null && packageScope.length() > 1000) {
+            throw new IllegalArgumentException("Package scope is too long (> 1000 characters)");
+        }
+        
+        if (maxThreads < 0) {
+            throw new IllegalArgumentException("Max threads cannot be negative");
+        }
+        
+        if (maxThreads > 1000) {
+            throw new IllegalArgumentException("Max threads is too high (> 1000)");
+        }
+        
+        if (enableBackup && (backupDir == null || backupDir.trim().isEmpty())) {
+            throw new IllegalArgumentException("Backup directory must be specified when backup is enabled");
+        }
+        
+        if (customSettings != null && customSettings.size() > 1000) {
+            throw new IllegalArgumentException("Too many custom settings (> 1000)");
+        }
+        
+        if (excludePackages != null && excludePackages.size() > 100) {
+            throw new IllegalArgumentException("Too many excluded packages (> 100)");
+        }
+        
+        if (includePackages != null && includePackages.size() > 100) {
+            throw new IllegalArgumentException("Too many included packages (> 100)");
+        }
+        
+        if (renameLocalVariables && preserveLocalVariableNames) {
+            throw new IllegalArgumentException("Cannot rename local variables while preserving their names");
+        }
+    }
+    
+    private String sanitizeClassName(String mainClass) {
+        if (mainClass == null) {
+            return null;
+        }
+        
+        String trimmed = mainClass.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        
+        if (trimmed.contains("..") || trimmed.startsWith("/") || trimmed.endsWith("/")) {
+            throw new IllegalArgumentException("Invalid main class name: " + mainClass);
+        }
+        
+        return trimmed;
+    }
+    
+    private String sanitizePackageScope(String packageScope) {
+        if (packageScope == null) {
+            return null;
+        }
+        
+        String trimmed = packageScope.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        
+        if (trimmed.contains("..") || trimmed.startsWith("/") || trimmed.endsWith("/")) {
+            throw new IllegalArgumentException("Invalid package scope: " + packageScope);
+        }
+        
+        return trimmed;
+    }
+    
+    private Map<String, Object> sanitizeCustomSettings(Map<String, Object> customSettings) {
+        if (customSettings == null) {
+            return new HashMap<>();
+        }
+        
+        Map<String, Object> sanitized = new HashMap<>();
+        for (Map.Entry<String, Object> entry : customSettings.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            
+            if (key == null || key.trim().isEmpty()) {
+                continue;
+            }
+            
+            if (key.length() > 100) {
+                throw new IllegalArgumentException("Custom setting key too long: " + key.substring(0, 50) + "...");
+            }
+            
+            sanitized.put(key.trim(), value);
+        }
+        
+        return sanitized;
+    }
+    
+    private List<String> sanitizePackageList(List<String> packages, String listName) {
+        if (packages == null) {
+            return new ArrayList<>();
+        }
+        
+        List<String> sanitized = new ArrayList<>();
+        for (String pkg : packages) {
+            if (pkg == null) {
+                continue;
+            }
+            
+            String trimmed = pkg.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            
+            if (trimmed.length() > 500) {
+                throw new IllegalArgumentException(listName + " package name too long: " + trimmed.substring(0, 50) + "...");
+            }
+            
+            if (trimmed.contains("..") || trimmed.startsWith(".") || trimmed.endsWith(".")) {
+                throw new IllegalArgumentException("Invalid package name in " + listName + ": " + trimmed);
+            }
+            
+            sanitized.add(trimmed);
+        }
+        
+        return sanitized;
+    }
+    
+    private int validateMaxThreads(int maxThreads) {
+        if (maxThreads <= 0) {
+            return Runtime.getRuntime().availableProcessors();
+        }
+        
+        int processors = Runtime.getRuntime().availableProcessors();
+        if (maxThreads > processors * 4) {
+            return processors * 2;
+        }
+        
+        return maxThreads;
+    }
+    
+    private String sanitizeBackupDir(String backupDir, boolean enableBackup) {
+        if (!enableBackup) {
+            return backupDir;
+        }
+        
+        if (backupDir == null) {
+            return null;
+        }
+        
+        String trimmed = backupDir.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        
+        if (trimmed.length() > 500) {
+            throw new IllegalArgumentException("Backup directory path too long: " + trimmed.substring(0, 50) + "...");
+        }
+        
+        return trimmed;
     }
 
     public String getMainClass()
@@ -168,6 +343,16 @@ public class ObfuscationConfig
     public AntiDebugger.DebuggerAction getDebuggerAction()
     {
         return debuggerAction;
+    }
+    
+    public boolean isVmDetection()
+    {
+        return vmDetection;
+    }
+    
+    public AntiDebugger.VMDetectionLevel getVmDetectionLevel()
+    {
+        return vmDetectionLevel;
     }
     
     public boolean isGenerateScore()
@@ -397,10 +582,10 @@ public class ObfuscationConfig
     public static class Builder
     {
         private String mainClass;
-        private boolean renameClasses = true;
-        private boolean renameFields = true;
-        private boolean renameMethods = true;
-        private boolean renameLocalVariables = true;
+        private boolean renameClasses = false;
+        private boolean renameFields = false;
+        private boolean renameMethods = false;
+        private boolean renameLocalVariables = false;
         private boolean obfuscateConditions = false;
         private boolean verbose = false;
         private final KeepRules keepRules = new KeepRules();
@@ -408,6 +593,8 @@ public class ObfuscationConfig
         private NamingMode namingMode = NamingMode.SEQUENTIAL_PREFIX;
         private boolean antiDebugging = false;
         private AntiDebugger.DebuggerAction debuggerAction = AntiDebugger.DebuggerAction.EXIT_SILENTLY;
+        private boolean vmDetection = false;
+        private AntiDebugger.VMDetectionLevel vmDetectionLevel = AntiDebugger.VMDetectionLevel.BASIC;
         private boolean generateScore = false;
         private boolean sequentialTransformers = false;
         private ObfuscationLevel obfuscationLevel = ObfuscationLevel.BASIC;
@@ -563,6 +750,18 @@ public class ObfuscationConfig
             return this;
         }
         
+        public Builder vmDetection(boolean vmDetection)
+        {
+            this.vmDetection = vmDetection;
+            return this;
+        }
+        
+        public Builder vmDetectionLevel(AntiDebugger.VMDetectionLevel vmDetectionLevel)
+        {
+            this.vmDetectionLevel = vmDetectionLevel;
+            return this;
+        }
+        
         public Builder generateScore(boolean generateScore)
         {
             this.generateScore = generateScore;
@@ -678,6 +877,8 @@ public class ObfuscationConfig
                     renameLocalVariables = true;
                     obfuscateConditions = true;
                     antiDebugging = true;
+                    vmDetection = true;
+                    vmDetectionLevel = AntiDebugger.VMDetectionLevel.COMPREHENSIVE;
                     namingMode = NamingMode.RANDOM_SHORT;
                     shuffleMembers = true;
                     break;
@@ -689,6 +890,8 @@ public class ObfuscationConfig
                     renameLocalVariables = true;
                     obfuscateConditions = true;
                     antiDebugging = true;
+                    vmDetection = true;
+                    vmDetectionLevel = AntiDebugger.VMDetectionLevel.PARANOID;
                     debuggerAction = AntiDebugger.DebuggerAction.CORRUPT_EXECUTION;
                     namingMode = NamingMode.RANDOM_LONG;
                     shuffleMembers = true;
@@ -711,7 +914,7 @@ public class ObfuscationConfig
             return new ObfuscationConfig(
                 mainClass, renameClasses, renameFields, renameMethods, renameLocalVariables, 
                 obfuscateConditions, verbose, keepRules, packageScope, namingMode, 
-                antiDebugging, debuggerAction, generateScore, sequentialTransformers,
+                antiDebugging, debuggerAction, vmDetection, vmDetectionLevel, generateScore, sequentialTransformers,
                 obfuscationLevel, customSettings, excludePackages, includePackages,
                 preserveLineNumbers, preserveLocalVariableNames, optimizeCode, 
                 compressStrings, shuffleMembers, maxThreads, enableBackup, backupDir

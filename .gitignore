@@ -9,6 +9,9 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/zencoder
+.idea/zencoder-chat-index.xml
+.idea/zencoder-chats-dedicated.xml
 *.iws
 *.iml
 *.ipr

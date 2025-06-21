@@ -9,36 +9,63 @@ public class AntiDebuggingTransformer extends AbstractTransformer {
     
     private final AntiDebugger antiDebugger;
     private final AntiDebugger.DebuggerAction action;
+    private final AntiDebugger.VMDetectionLevel vmLevel;
     
     public AntiDebuggingTransformer(AntiDebugger.DebuggerAction action) {
+        this(action, AntiDebugger.VMDetectionLevel.BASIC);
+    }
+    
+    public AntiDebuggingTransformer(AntiDebugger.DebuggerAction action, AntiDebugger.VMDetectionLevel vmLevel) {
         super("Anti-Debugging Transformer", 100);
         this.antiDebugger = new AntiDebugger();
-        this.action = action;
+        this.action = action != null ? action : AntiDebugger.DebuggerAction.EXIT_SILENTLY;
+        this.vmLevel = vmLevel != null ? vmLevel : AntiDebugger.VMDetectionLevel.BASIC;
     }
     
     @Override
     public void transform(ClassReader reader, ClassWriter writer, ObfuscationContext context) {
-        if (!context.getConfig().isAntiDebugging()) {
+        if (!context.getConfig().isAntiDebugging() && !context.getConfig().isVmDetection()) {
             return;
         }
         
         try {
             String className = reader.getClassName();
-            AntiDebuggingClassVisitor visitor = new AntiDebuggingClassVisitor(writer, className);
+            AntiDebugger.DebuggerAction configAction = context.getConfig().getDebuggerAction();
+            AntiDebugger.VMDetectionLevel configVmLevel = context.getConfig().getVmDetectionLevel();
+            
+            AntiDebuggingClassVisitor visitor = new AntiDebuggingClassVisitor(
+                writer, className, 
+                configAction != null ? configAction : this.action,
+                configVmLevel != null ? configVmLevel : this.vmLevel,
+                context.getConfig().isAntiDebugging(),
+                context.getConfig().isVmDetection()
+            );
             reader.accept(visitor, ClassReader.EXPAND_FRAMES);
         } catch (Exception e) {
-            logTransformation("Failed to apply anti-debugging to class: " + reader.getClassName() + " - " + e.getMessage(), context);
+            logTransformation("Failed to apply anti-debugging/VM detection to class: " + reader.getClassName() + " - " + e.getMessage(), context);
         }
     }
     
     private class AntiDebuggingClassVisitor extends ClassVisitor {
         private final String className;
+        private final AntiDebugger.DebuggerAction debuggerAction;
+        private final AntiDebugger.VMDetectionLevel vmDetectionLevel;
+        private final boolean antiDebuggingEnabled;
+        private final boolean vmDetectionEnabled;
         private boolean hasStaticInit = false;
         private boolean antiDebugInjected = false;
         
-        public AntiDebuggingClassVisitor(ClassVisitor cv, String className) {
+        public AntiDebuggingClassVisitor(ClassVisitor cv, String className, 
+                                       AntiDebugger.DebuggerAction debuggerAction,
+                                       AntiDebugger.VMDetectionLevel vmDetectionLevel,
+                                       boolean antiDebuggingEnabled,
+                                       boolean vmDetectionEnabled) {
             super(Opcodes.ASM9, cv);
             this.className = className;
+            this.debuggerAction = debuggerAction;
+            this.vmDetectionLevel = vmDetectionLevel;
+            this.antiDebuggingEnabled = antiDebuggingEnabled;
+            this.vmDetectionEnabled = vmDetectionEnabled;
         }
         
         @Override
@@ -62,14 +89,18 @@ public class AntiDebuggingTransformer extends AbstractTransformer {
         
         @Override
         public void visitEnd() {
-            // Inject anti-debug method
-            if (!antiDebugInjected) {
-                antiDebugger.injectAntiDebugCheck((ClassWriter) cv, className, action);
+            // Inject anti-debug and VM detection methods
+            if (!antiDebugInjected && (antiDebuggingEnabled || vmDetectionEnabled)) {
+                if (vmDetectionEnabled) {
+                    antiDebugger.injectAntiDebugCheck((ClassWriter) cv, className, debuggerAction, vmDetectionLevel);
+                } else if (antiDebuggingEnabled) {
+                    antiDebugger.injectAntiDebugCheck((ClassWriter) cv, className, debuggerAction);
+                }
                 antiDebugInjected = true;
             }
             
             // If no static initializer exists, create one
-            if (!hasStaticInit) {
+            if (!hasStaticInit && (antiDebuggingEnabled || vmDetectionEnabled)) {
                 MethodVisitor mv = super.visitMethod(
                     Opcodes.ACC_STATIC,
                     "<clinit>",
@@ -115,9 +146,15 @@ public class AntiDebuggingTransformer extends AbstractTransformer {
             public void visitCode() {
                 super.visitCode();
                 if (!injected) {
-                    // Inject anti-debug check at the beginning of main method
-                    super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        className.replace('.', '/'), "checkDebugger", "()V", false);
+                    // Inject anti-debug and VM checks at the beginning of main method
+                    if (antiDebuggingEnabled) {
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC,
+                            className.replace('.', '/'), "checkDebugger", "()V", false);
+                    }
+                    if (vmDetectionEnabled) {
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC,
+                            className.replace('.', '/'), "checkVM", "()V", false);
+                    }
                     injected = true;
                 }
             }
@@ -135,8 +172,14 @@ public class AntiDebuggingTransformer extends AbstractTransformer {
             Label skipCheck = new Label();
             mv.visitJumpInsn(Opcodes.IFEQ, skipCheck);
             
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC,
-                className.replace('.', '/'), "checkDebugger", "()V", false);
+            if (antiDebuggingEnabled) {
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    className.replace('.', '/'), "checkDebugger", "()V", false);
+            }
+            if (vmDetectionEnabled) {
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    className.replace('.', '/'), "checkVM", "()V", false);
+            }
             
             mv.visitLabel(skipCheck);
             mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);

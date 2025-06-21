@@ -37,18 +37,44 @@ public class Obfuscator
     
     public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile) throws IOException
     {
-        if (config.isAntiDebugging()) {
-            engine.registerTransformer(new AntiDebuggingTransformer(AntiDebugger.DebuggerAction.EXIT_SILENTLY));
+        if (inputJar == null) {
+            throw new IllegalArgumentException("Input JAR file cannot be null");
         }
+        if (outputJar == null) {
+            throw new IllegalArgumentException("Output JAR file cannot be null");
+        }
+        if (config == null) {
+            throw new IllegalArgumentException("Obfuscation config cannot be null");
+        }
+        
+        setupConditionalTransformers(config);
         engine.obfuscate(inputJar, outputJar, config, mappingsFile);
     }
     
     public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile, MappingExporter.MappingFormat format) throws IOException
     {
-        if (config.isAntiDebugging()) {
-            engine.registerTransformer(new AntiDebuggingTransformer(AntiDebugger.DebuggerAction.EXIT_SILENTLY));
+        if (inputJar == null) {
+            throw new IllegalArgumentException("Input JAR file cannot be null");
         }
+        if (outputJar == null) {
+            throw new IllegalArgumentException("Output JAR file cannot be null");
+        }
+        if (config == null) {
+            throw new IllegalArgumentException("Obfuscation config cannot be null");
+        }
+        
+        setupConditionalTransformers(config);
         engine.obfuscate(inputJar, outputJar, config, mappingsFile, format);
+    }
+    
+    private void setupConditionalTransformers(ObfuscationConfig config)
+    {
+        if (config.isAntiDebugging()) {
+            AntiDebugger.DebuggerAction action = config.getDebuggerAction() != null 
+                ? config.getDebuggerAction() 
+                : AntiDebugger.DebuggerAction.EXIT_SILENTLY;
+            engine.registerTransformer(new AntiDebuggingTransformer(action));
+        }
     }
     
     public ObfuscationEngine getEngine()

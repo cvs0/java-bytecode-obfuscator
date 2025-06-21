@@ -49,14 +49,88 @@ public class MappingManager
         
         if (shouldRenameField(owner, fieldName)) {
             String key = owner + "." + fieldName;
-            String newName = fieldNameGenerator.generateName(owner, fieldName, descriptor);
-            fieldMappings.put(key, newName);
+            
+            if (!fieldMappings.containsKey(key)) {
+                String inheritedMapping = findInheritedFieldMapping(owner, fieldName);
+                
+                if (inheritedMapping != null) {
+                    fieldMappings.put(key, inheritedMapping);
+                } else {
+                    String newName = fieldNameGenerator.generateName(owner, fieldName, descriptor);
+                    fieldMappings.put(key, newName);
+                    
+                    if (inheritanceTracker != null) {
+                        propagateFieldRename(owner, fieldName, newName);
+                    }
+                }
+            }
+        }
+    }
+    
+    private String findInheritedFieldMapping(String owner, String fieldName)
+    {
+        if (inheritanceTracker == null) {
+            return null;
+        }
+        
+        for (String superClass : inheritanceTracker.getAllSuperclasses(owner)) {
+            String superKey = superClass + "." + fieldName;
+            if (fieldMappings.containsKey(superKey)) {
+                return fieldMappings.get(superKey);
+            }
+        }
+        
+        for (String iface : inheritanceTracker.getAllInterfaces(owner)) {
+            String ifaceKey = iface + "." + fieldName;
+            if (fieldMappings.containsKey(ifaceKey)) {
+                return fieldMappings.get(ifaceKey);
+            }
+        }
+        
+        return null;
+    }
+    
+    private void propagateFieldRename(String owner, String fieldName, String newName)
+    {
+        if (inheritanceTracker == null) {
+            return;
+        }
+        
+        for (String subClass : inheritanceTracker.getAllSubclasses(owner)) {
+            String subKey = subClass + "." + fieldName;
+            if (!fieldMappings.containsKey(subKey) && shouldRenameField(subClass, fieldName)) {
+                fieldMappings.put(subKey, newName);
+            }
+        }
+        
+        if (inheritanceTracker.isInterface(owner)) {
+            for (String implementor : inheritanceTracker.getImplementorsOf(owner)) {
+                String implKey = implementor + "." + fieldName;
+                if (!fieldMappings.containsKey(implKey) && shouldRenameField(implementor, fieldName)) {
+                    fieldMappings.put(implKey, newName);
+                }
+            }
+        }
+        
+        if (inheritanceTracker.isInnerClass(owner)) {
+            String outerClass = inheritanceTracker.getOuterClass(owner);
+            if (outerClass != null && inheritanceTracker.hasFieldAccess(owner, outerClass)) {
+                String outerKey = outerClass + "." + fieldName;
+                if (!fieldMappings.containsKey(outerKey) && shouldRenameField(outerClass, fieldName)) {
+                    fieldMappings.put(outerKey, newName);
+                }
+            }
         }
     }
     
     public void setInheritanceTracker(InheritanceTracker inheritanceTracker)
     {
         this.inheritanceTracker = inheritanceTracker;
+    }
+    
+    public InheritanceTracker getInheritanceTracker()
+    {
+        return inheritanceTracker;
     }
     
     public void generateMethodMapping(String owner, String methodName, String descriptor)
@@ -125,8 +199,21 @@ public class MappingManager
         if (fieldName == null) {
             return null;
         }
+        
         String key = owner + "." + fieldName;
-        return fieldMappings.getOrDefault(key, fieldName);
+        String directMapping = fieldMappings.get(key);
+        if (directMapping != null) {
+            return directMapping;
+        }
+        
+        if (inheritanceTracker != null) {
+            String inheritedMapping = findInheritedFieldMapping(owner, fieldName);
+            if (inheritedMapping != null) {
+                return inheritedMapping;
+            }
+        }
+        
+        return fieldName;
     }
     
     public String getMethodMapping(String owner, String methodName, String descriptor)
@@ -180,7 +267,27 @@ public class MappingManager
             return false;
         }
         
-        return shouldRenameClass(owner);
+        if (!shouldRenameClass(owner)) {
+            return false;
+        }
+        
+        if (fieldName.equals("$VALUES") || fieldName.equals("ENUM$VALUES")) {
+            return false;
+        }
+        
+        if (fieldName.startsWith("$assertionsDisabled") || fieldName.startsWith("$switch")) {
+            return false;
+        }
+        
+        if (fieldName.startsWith("this$") || fieldName.startsWith("val$")) {
+            return false;
+        }
+        
+        if (fieldName.equals("serialVersionUID")) {
+            return false;
+        }
+        
+        return true;
     }
     
     private boolean shouldRenameMethod(String owner, String methodName, String descriptor)

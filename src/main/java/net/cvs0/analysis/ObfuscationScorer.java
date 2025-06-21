@@ -185,12 +185,10 @@ public class ObfuscationScorer {
         int maxScore = 100;
         List<String> details = new ArrayList<>();
         
-        // Class renaming (25 points)
         if (config.isRenameClasses()) {
             score += 25;
             details.add("Classes are renamed");
             
-            // Bonus for naming mode
             switch (config.getNamingMode()) {
                 case RANDOM_LONG:
                     score += 10;
@@ -216,7 +214,6 @@ public class ObfuscationScorer {
             recommendations.add("Enable class renaming for better obfuscation");
         }
         
-        // Method renaming (25 points)
         if (config.isRenameMethods()) {
             score += 25;
             details.add("Methods are renamed");
@@ -224,7 +221,6 @@ public class ObfuscationScorer {
             recommendations.add("Enable method renaming");
         }
         
-        // Field renaming (20 points)
         if (config.isRenameFields()) {
             score += 20;
             details.add("Fields are renamed");
@@ -232,7 +228,6 @@ public class ObfuscationScorer {
             recommendations.add("Enable field renaming");
         }
         
-        // Local variable renaming (10 points)
         if (config.isRenameLocalVariables()) {
             score += 10;
             details.add("Local variables are renamed");
@@ -248,7 +243,6 @@ public class ObfuscationScorer {
         int maxScore = 80;
         List<String> details = new ArrayList<>();
         
-        // Condition obfuscation (30 points)
         if (config.isObfuscateConditions()) {
             score += 30;
             details.add("Boolean conditions are obfuscated");
@@ -256,7 +250,6 @@ public class ObfuscationScorer {
             recommendations.add("Enable condition obfuscation to hide boolean logic");
         }
         
-        // Anti-debugging checks (50 points)
         if (config.isAntiDebugging()) {
             score += 50;
             details.add("Anti-debugging protection enabled");
@@ -271,9 +264,7 @@ public class ObfuscationScorer {
         int score = 0;
         int maxScore = 60;
         List<String> details = new ArrayList<>();
-        
-        // Currently no data protection features implemented
-        recommendations.add("Consider adding string encryption");
+
         recommendations.add("Consider adding array obfuscation");
         recommendations.add("Consider adding constant pool encryption");
         
@@ -285,17 +276,22 @@ public class ObfuscationScorer {
         int maxScore = 70;
         List<String> details = new ArrayList<>();
         
-        // Anti-debugging (40 points)
         if (config.isAntiDebugging()) {
             score += 40;
             details.add("Runtime debugging detection");
+        } else {
+            recommendations.add("Enable anti-debugging to prevent reverse engineering");
         }
-        
-        // Currently no other anti-analysis features
-        recommendations.add("Consider adding decompiler detection");
+
+        if (config.isVmDetection()) {
+            score += 20;
+            details.add("Virtual machine detection enabled");
+        } else {
+            recommendations.add("Enable VM detection to prevent analysis in emulators");
+        }
+
         recommendations.add("Consider adding integrity checking");
-        recommendations.add("Consider adding VM detection");
-        
+
         return new CategoryScore(score, maxScore, details);
     }
     
@@ -304,7 +300,6 @@ public class ObfuscationScorer {
         int maxScore = 50;
         List<String> details = new ArrayList<>();
         
-        // Analyze mapping complexity
         if (context.getMappingManager() != null) {
             int classMappings = context.getMappingManager().getClassMappings().size();
             int methodMappings = context.getMappingManager().getMethodMappings().size();
@@ -337,7 +332,6 @@ public class ObfuscationScorer {
         int maxScore = 90;
         List<String> details = new ArrayList<>();
         
-        // Currently no advanced techniques implemented
         recommendations.add("Consider adding method virtualization");
         recommendations.add("Consider adding instruction substitution");
         recommendations.add("Consider adding opaque predicates");

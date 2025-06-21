@@ -90,4 +90,47 @@ public class InheritanceTracker
     {
         return interfaceClasses.contains(className);
     }
+    
+    public String getOuterClass(String innerClass)
+    {
+        if (innerClass == null || !innerClass.contains("$")) {
+            return null;
+        }
+        
+        int dollarIndex = innerClass.lastIndexOf('$');
+        if (dollarIndex > 0) {
+            return innerClass.substring(0, dollarIndex);
+        }
+        
+        return null;
+    }
+    
+    public boolean isInnerClass(String className)
+    {
+        return className != null && className.contains("$");
+    }
+    
+    public boolean hasFieldAccess(String owner, String accessor)
+    {
+        if (owner == null || accessor == null) {
+            return false;
+        }
+        
+        if (owner.equals(accessor)) {
+            return true;
+        }
+        
+        String outerClass = getOuterClass(accessor);
+        if (outerClass != null && outerClass.equals(owner)) {
+            return true;
+        }
+        
+        String accessorOuter = getOuterClass(accessor);
+        String ownerOuter = getOuterClass(owner);
+        if (accessorOuter != null && ownerOuter != null && accessorOuter.equals(ownerOuter)) {
+            return true;
+        }
+        
+        return false;
+    }
 }

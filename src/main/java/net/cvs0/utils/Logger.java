@@ -123,25 +123,38 @@ public class Logger
     
     private static void log(LogLevel level, String emoji, String color, String message)
     {
-        String timestamp = LocalDateTime.now().format(TIME_FORMATTER);
-        String formattedMessage;
-        
-        emoji = emoji != null ? emoji : "";
-        color = color != null ? color : "";
-        message = message != null ? message : "";
-        
-        if (colorEnabled) {
-            formattedMessage = String.format("%s[%s] %s %s%s%s", 
-                GRAY, timestamp, emoji, color, message, RESET);
-        } else {
-            formattedMessage = String.format("[%s] %s %s", 
-                timestamp, emoji, message);
+        if (level == null) {
+            return;
         }
         
-        if (level == LogLevel.ERROR) {
-            System.err.println(formattedMessage);
-        } else {
-            System.out.println(formattedMessage);
+        try {
+            String timestamp = LocalDateTime.now().format(TIME_FORMATTER);
+            String formattedMessage;
+            
+            emoji = emoji != null ? emoji : "";
+            color = color != null ? color : "";
+            message = message != null ? message : "null";
+            
+            if (colorEnabled) {
+                formattedMessage = String.format("%s[%s] %s %s%s%s", 
+                    GRAY, timestamp, emoji, color, message, RESET);
+            } else {
+                formattedMessage = String.format("[%s] %s %s", 
+                    timestamp, emoji, message);
+            }
+            
+            if (level == LogLevel.ERROR) {
+                System.err.println(formattedMessage);
+                System.err.flush();
+            } else {
+                System.out.println(formattedMessage);
+                System.out.flush();
+            }
+        } catch (Exception e) {
+            System.err.println("[LOGGER ERROR] Failed to log message: " + e.getMessage());
+            if (message != null) {
+                System.err.println("[FALLBACK] " + message);
+            }
         }
     }
     

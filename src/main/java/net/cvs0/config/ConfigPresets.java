@@ -1,5 +1,7 @@
 package net.cvs0.config;
 
+import net.cvs0.utils.AntiDebugger;
+
 public class ConfigPresets
 {
     public static ObfuscationConfig.Builder createPresetForLevel(ObfuscationConfig.ObfuscationLevel level)
@@ -34,6 +36,9 @@ public class ConfigPresets
         return new ObfuscationConfig.Builder()
                 .obfuscationLevel(ObfuscationConfig.ObfuscationLevel.EXTREME)
                 .antiDebugging(true)
+                .vmDetection(true)
+                .vmDetectionLevel(AntiDebugger.VMDetectionLevel.COMPREHENSIVE)
+                .debuggerAction(AntiDebugger.DebuggerAction.CORRUPT_EXECUTION)
                 .generateScore(true)
                 .optimizeCode(true)
                 .compressStrings(true)
