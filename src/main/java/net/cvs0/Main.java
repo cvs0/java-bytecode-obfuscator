@@ -116,6 +116,9 @@ public class Main implements Callable<Integer>
     @Option(names = {"--sequential-transformers"}, description = "Run transformers sequentially - each transformer processes all classes before the next starts (disabled by default)")
     private Boolean sequentialTransformers;
 
+    @Option(names = {"--include-package"}, description = "Include specific package for obfuscation (can be used multiple times, e.g., com.example, org.myapp)")
+    private List<String> includePackages;
+
     public static void main(String[] args)
     {
         try {
@@ -458,6 +461,16 @@ public class Main implements Callable<Integer>
         
         if (sequentialTransformers != null) {
             builder.sequentialTransformers(sequentialTransformers);
+        }
+        
+        if (includePackages != null && !includePackages.isEmpty()) {
+            for (String packageName : includePackages) {
+                String normalizedPackage = packageName.replace('.', '/');
+                builder.includePackage(normalizedPackage);
+                if (verbose) {
+                    System.out.println("Including package for obfuscation: " + packageName + " (" + normalizedPackage + ")");
+                }
+            }
         }
         
         // Set defaults if no rename options specified and no config file

@@ -250,11 +250,23 @@ public class ConfigValidator
             return false;
         }
         
-        if (packageName.startsWith(".") || packageName.endsWith(".") || packageName.contains("..")) {
+        boolean isDotNotation = packageName.contains(".");
+        boolean isSlashNotation = packageName.contains("/");
+        
+        if (isDotNotation && isSlashNotation) {
             return false;
         }
         
-        String[] parts = packageName.split("\\.");
+        String separator = isDotNotation ? "\\." : "/";
+        char sepChar = isDotNotation ? '.' : '/';
+        
+        if (packageName.startsWith(String.valueOf(sepChar)) || 
+            packageName.endsWith(String.valueOf(sepChar)) || 
+            packageName.contains(sepChar + "" + sepChar)) {
+            return false;
+        }
+        
+        String[] parts = packageName.split(separator);
         for (String part : parts) {
             if (part.isEmpty() || !Character.isJavaIdentifierStart(part.charAt(0))) {
                 return false;
