@@ -1273,6 +1273,19 @@ ObfuscationConfig config = new ObfuscationConfig.Builder()
    - Renames methods and updates method invocations
    - Skips constructors and static initializers
 
+4. **AntiDebuggingTransformer** (Priority: 100)
+   - Adds anti-debugging checks and responses
+   - Configurable actions on debugger detection
+   - Adds VM checks to prevent debugging
+
+5. **ConditionObfuscationTransformer** (Priority: 250)
+   - Transforms boolean constants into complex expressions
+   - Ensures stackmap safety
+
+6. **StringCompressionTransformer** (Priority: 350)
+    - Compresses string literals using Deflate and Base64
+    - Decompresses strings at runtime
+
 ### Validation System
 
 - **Input Validation** - Validates JAR files, output paths, and file permissions
@@ -1334,22 +1347,6 @@ ObfuscationConfig config = ConfigPresets.createDebugObfuscation()
     .verbose(true)
     .build();
 ```
-
-## Contributing
-
-### Adding New Transformers
-
-1. Extend `AbstractTransformer`
-2. Implement required methods
-3. Set appropriate priority
-4. Register with `ObfuscationEngine`
-
-### Configuration Extensions
-
-1. Add new properties to `ObfuscationConfig`
-2. Update `Builder` class
-3. Add validation in `ConfigValidator`
-4. Create preset if needed
 
 ## License
 

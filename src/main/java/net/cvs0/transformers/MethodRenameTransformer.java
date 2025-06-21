@@ -1,28 +1,17 @@
 package net.cvs0.transformers;
 
 import net.cvs0.context.ObfuscationContext;
-import net.cvs0.core.AbstractTransformer;
-import net.cvs0.mappings.remappers.MapBasedRenamer;
+import net.cvs0.core.BaseClassVisitor;
+import net.cvs0.core.RenameTransformer;
 import net.cvs0.utils.Logger;
+import net.cvs0.mappings.remappers.MapBasedRenamer;
 import org.objectweb.asm.*;
 
-public class MethodRenameTransformer extends AbstractTransformer
- {
+public class MethodRenameTransformer extends RenameTransformer
+{
     public MethodRenameTransformer()
     {
-        super("MethodRename", 300);
-    }
-    
-    @Override
-    public void transform(ClassReader reader, ClassWriter writer, ObfuscationContext context)
-    {
-        if (!context.getConfig().isRenameMethods()) {
-            reader.accept(writer, 0);
-            return;
-        }
-        
-        ClassVisitor visitor = new MethodRenameVisitor(writer, context);
-        reader.accept(visitor, 0);
+        super("MethodRename", 300, "method");
     }
     
     @Override
@@ -30,45 +19,31 @@ public class MethodRenameTransformer extends AbstractTransformer
     {
         return context.getConfig().isRenameMethods();
     }
-    
-    private class MethodRenameVisitor extends ClassVisitor
+
+    @Override
+    protected BaseClassVisitor createClassVisitor(org.objectweb.asm.ClassWriter writer, ObfuscationContext context, String className)
     {
-        private final ObfuscationContext context;
-        private String currentClassName;
-        
+        return new MethodRenameVisitor(writer, context);
+    }
+    
+    private class MethodRenameVisitor extends BaseClassVisitor
+    {
         public MethodRenameVisitor(ClassVisitor classVisitor, ObfuscationContext context)
         {
-            super(Opcodes.ASM9, classVisitor);
-            this.context = context;
+            super(classVisitor, context);
         }
         
         @Override
-        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces)
+        protected String getTransformerName()
         {
-            this.currentClassName = name;
-            super.visit(version, access, name, signature, superName, interfaces);
+            return "MethodRename";
         }
         
         @Override
-        public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions)
+        protected MethodVisitor createMethodVisitor(MethodVisitor mv, int access, String name, 
+                                                  String descriptor, String signature, String[] exceptions)
         {
-            if (shouldSkipMethod(name, access)) {
-                MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                return new MethodCallRenameVisitor(mv, context, currentClassName);
-            }
-            
-            if (!context.getConfig().isInPackageScope(currentClassName)) {
-                MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                return new MethodCallRenameVisitor(mv, context, currentClassName);
-            }
-            
             String methodKey = currentClassName + "." + name + descriptor;
-            
-            if (context.getConfig().shouldKeepMethod(currentClassName, name, descriptor)) {
-                Logger.debug("Keeping method: " + methodKey);
-                MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                return new MethodCallRenameVisitor(mv, context, currentClassName);
-            }
             
             String newName = context.getMethodMappings().get(methodKey);
             if (newName == null) {
@@ -84,37 +59,19 @@ public class MethodRenameTransformer extends AbstractTransformer
                 Logger.mapping(methodKey, newName);
             }
             
-            MethodVisitor mv = super.visitMethod(access, newName, descriptor, signature, exceptions);
-            return new MethodCallRenameVisitor(mv, context, currentClassName);
+            MethodVisitor renamedMv = cv.visitMethod(access, newName, descriptor, signature, exceptions);
+            return new MethodCallRenameVisitor(renamedMv, context, currentClassName);
         }
         
-        private boolean shouldSkipMethod(String name, int access)
+        @Override
+        public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions)
         {
-            if (name != null && (name.equals("<init>") || name.equals("<clinit>"))) {
-                return true;
+            if (!shouldProcessMethod(name, access, descriptor)) {
+                MethodVisitor mv = cv.visitMethod(access, name, descriptor, signature, exceptions);
+                return new MethodCallRenameVisitor(mv, context, currentClassName);
             }
             
-            if (name != null && name.startsWith("lambda$")) {
-                return true;
-            }
-            
-            if (name != null && (name.equals("values") || name.equals("valueOf") || name.equals("$values"))) {
-                return true;
-            }
-            
-            if ((access & Opcodes.ACC_SYNTHETIC) != 0) {
-                return true;
-            }
-            
-            if ((access & Opcodes.ACC_BRIDGE) != 0) {
-                return true;
-            }
-            
-            if (name != null && name.equals("main")) {
-                return true;
-            }
-            
-            return false;
+            return createMethodVisitor(null, access, name, descriptor, signature, exceptions);
         }
     }
     
@@ -133,16 +90,21 @@ public class MethodRenameTransformer extends AbstractTransformer
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface)
         {
-            String mappedOwner = context.getClassMappings().getOrDefault(owner, owner);
+            String mappedOwner = owner;
+            if (context.getMappingManager() != null) {
+                String classMapping = context.getMappingManager().getClassMapping(owner);
+                if (classMapping != null) {
+                    mappedOwner = classMapping;
+                }
+            }
             
             if (shouldRenameMethodCall(name, owner)) {
-                String methodKey = owner + "." + name + descriptor;
-                String newName = context.getMethodMappings().get(methodKey);
-                if (newName == null && context.getMappingManager() != null) {
-                    newName = context.getMappingManager().getMethodMapping(owner, name, descriptor);
-                }
-                if (newName == null) {
-                    newName = name;
+                String newName = name;
+                if (context.getMappingManager() != null) {
+                    String methodMapping = context.getMappingManager().getMethodMapping(owner, name, descriptor);
+                    if (methodMapping != null) {
+                        newName = methodMapping;
+                    }
                 }
                 super.visitMethodInsn(opcode, mappedOwner, newName, descriptor, isInterface);
             } else {
@@ -163,20 +125,24 @@ public class MethodRenameTransformer extends AbstractTransformer
                     String methodName = handle.getName();
                     String methodDesc = handle.getDesc();
                     
+                    String mappedOwner = owner;
+                    if (context.getMappingManager() != null) {
+                        String classMapping = context.getMappingManager().getClassMapping(owner);
+                        if (classMapping != null) {
+                            mappedOwner = classMapping;
+                        }
+                    }
+                    
                     if (shouldRenameMethodCall(methodName, owner)) {
-                        String methodKey = owner + "." + methodName + methodDesc;
-                        String newMethodName = context.getMethodMappings().get(methodKey);
-                        if (newMethodName == null && context.getMappingManager() != null) {
-                            newMethodName = context.getMappingManager().getMethodMapping(owner, methodName, methodDesc);
+                        String newMethodName = methodName;
+                        if (context.getMappingManager() != null) {
+                            String methodMapping = context.getMappingManager().getMethodMapping(owner, methodName, methodDesc);
+                            if (methodMapping != null) {
+                                newMethodName = methodMapping;
+                            }
                         }
-                        if (newMethodName == null) {
-                            newMethodName = methodName;
-                        }
-                        String mappedOwner = context.getClassMappings().getOrDefault(owner, owner);
-                        
                         newArgs[i] = new Handle(handle.getTag(), mappedOwner, newMethodName, methodDesc, handle.isInterface());
                     } else {
-                        String mappedOwner = context.getClassMappings().getOrDefault(owner, owner);
                         newArgs[i] = new Handle(handle.getTag(), mappedOwner, methodName, methodDesc, handle.isInterface());
                     }
                 } else {

@@ -18,7 +18,11 @@ public class GlobalRemapper extends Remapper
             return null;
         }
         try {
-            return mappingManager.getClassMapping(internalName);
+            String mapping = mappingManager.getClassMapping(internalName);
+            if (mapping != null && !mapping.equals(internalName)) {
+                return mapping;
+            }
+            return internalName;
         } catch (Exception e) {
             return internalName;
         }
@@ -31,7 +35,11 @@ public class GlobalRemapper extends Remapper
             return name;
         }
         try {
-            return mappingManager.getMethodMapping(owner, name, descriptor);
+            String mapping = mappingManager.getMethodMapping(owner, name, descriptor);
+            if (mapping != null && !mapping.equals(name)) {
+                return mapping;
+            }
+            return name;
         } catch (Exception e) {
             return name;
         }
@@ -44,7 +52,11 @@ public class GlobalRemapper extends Remapper
             return name;
         }
         try {
-            return mappingManager.getFieldMapping(owner, name);
+            String mapping = mappingManager.getFieldMapping(owner, name);
+            if (mapping != null && !mapping.equals(name)) {
+                return mapping;
+            }
+            return name;
         } catch (Exception e) {
             return name;
         }
