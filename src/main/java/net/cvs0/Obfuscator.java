@@ -9,6 +9,9 @@ import net.cvs0.transformers.MethodRenameTransformer;
 import net.cvs0.transformers.LocalVariableRenameTransformer;
 import net.cvs0.transformers.ConditionObfuscationTransformer;
 import net.cvs0.transformers.StringCompressionTransformer;
+import net.cvs0.transformers.FakeInterfaceTransformer;
+import net.cvs0.transformers.FakeExceptionTransformer;
+import net.cvs0.transformers.MethodInlinerTransformer;
 
 import net.cvs0.utils.AntiDebugger;
 
@@ -34,6 +37,9 @@ public class Obfuscator
         engine.registerTransformer(new ConditionObfuscationTransformer());
         engine.registerTransformer(new LocalVariableRenameTransformer());
         engine.registerTransformer(new StringCompressionTransformer());
+        engine.registerTransformer(new FakeInterfaceTransformer());
+        engine.registerTransformer(new FakeExceptionTransformer());
+        engine.registerTransformer(new MethodInlinerTransformer());
     }
     
     public void obfuscate(File inputJar, File outputJar, ObfuscationConfig config, File mappingsFile, MappingExporter.MappingFormat format) throws IOException

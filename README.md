@@ -11,7 +11,9 @@ A powerful and flexible Java bytecode obfuscator built with ASM that provides co
 - **Local Variable Renaming** - Obfuscate local variable names for additional protection
 - **Condition Obfuscation** - Transform simple boolean constants (true/false) into complex arithmetic expressions
 - **String Compression** - Compress string literals using deflate/base64 encoding to reduce size and obfuscate content
-- **String Compression** - Compress string literals using deflate/base64 encoding to reduce size and obfuscate content
+- **Method Inlining** - Inline simple methods to reduce call overhead and obfuscate control flow
+- **Fake Interface Flooding** - Generate fake interfaces and implement them to confuse reverse engineering tools
+- **Fake Exception Insertion** - Insert fake exception checks that never execute to complicate static analysis
 - **Anti-Debugging Protection** - Runtime detection and response to debugging attempts
 - **Reference Updating** - Automatically updates all references to renamed elements throughout the codebase
 - **Inheritance-Aware Renaming** - Properly handles interface implementations and method overrides
@@ -577,6 +579,254 @@ The transformer automatically determines which strings to compress based on:
 - Single words and short constants
 - Format strings and patterns
 
+## 🔧 Method Inlining
+
+Method inlining replaces method calls with the actual method body, reducing call overhead and making the code harder to analyze by eliminating method boundaries.
+
+### How It Works
+
+The transformer identifies simple methods that are good candidates for inlining and replaces calls to these methods with their actual implementation.
+
+**Original Code:**
+```java
+public class Calculator {
+    public int add(int a, int b) {
+        return a + b;
+    }
+    
+    public int calculate() {
+        return add(5, 3);  // Method call
+    }
+}
+```
+
+**Obfuscated Code:**
+```java
+public class a1 {
+    public int a1(int a, int b) {
+        return a + b;  // Method still exists but may not be called
+    }
+    
+    public int a2() {
+        return 5 + 3;  // Method call inlined
+    }
+}
+```
+
+### Features
+
+- **Smart Method Selection** - Only inlines simple methods without complex control flow
+- **Safety Checks** - Avoids inlining methods with field access or complex operations
+- **Conservative Approach** - Prevents inlining that could break functionality
+- **Stack-Safe** - Generates proper bytecode that passes JVM verification
+- **Selective Inlining** - Only processes methods that benefit from inlining
+
+### Usage
+
+```bash
+# Enable method inlining via CLI
+java -jar obfuscator.jar input.jar output.jar --inline-simple-methods
+
+# Combined with other obfuscation techniques
+java -jar obfuscator.jar input.jar output.jar \
+  --rename-classes --rename-methods --inline-simple-methods \
+  --obfuscate-conditions --verbose
+```
+
+### Configuration File
+
+```json
+{
+  "obfuscation": {
+    "renameClasses": true,
+    "renameMethods": true,
+    "inlineSimpleMethods": true
+  }
+}
+```
+
+### Inlining Criteria
+
+Methods are considered for inlining if they:
+- Are short (< 5 instructions)
+- Don't access fields
+- Don't contain loops or branches
+- Don't throw exceptions
+- Are not constructors or static initializers
+
+## 🎭 Fake Interface Flooding
+
+Fake interface flooding generates synthetic interfaces and makes classes implement them, creating false inheritance relationships that confuse reverse engineering tools and static analysis.
+
+### How It Works
+
+The transformer creates fake interfaces with random methods and makes target classes implement these interfaces, adding noise to the class hierarchy without affecting functionality.
+
+**Original Code:**
+```java
+public class DataProcessor {
+    public void process(String data) {
+        System.out.println("Processing: " + data);
+    }
+}
+```
+
+**Obfuscated Code:**
+```java
+// Generated fake interfaces
+interface a1 {
+    void m1();
+    int m2(String s);
+}
+
+interface a2 {
+    boolean m3();
+}
+
+public class a3 implements a1, a2 {
+    public void process(String data) {  // Original method
+        System.out.println("Processing: " + data);
+    }
+    
+    // Fake implementations that never execute
+    public void m1() { throw new UnsupportedOperationException(); }
+    public int m2(String s) { throw new UnsupportedOperationException(); }
+    public boolean m3() { throw new UnsupportedOperationException(); }
+}
+```
+
+### Features
+
+- **Dynamic Interface Generation** - Creates unique interfaces for each obfuscation run
+- **Configurable Quantity** - Control how many fake interfaces are added per class
+- **Method Variety** - Generates diverse method signatures with different return types
+- **Exception Throwing** - Fake methods throw exceptions to prevent accidental execution
+- **Inheritance Safe** - Doesn't interfere with existing inheritance hierarchies
+
+### Usage
+
+```bash
+# Enable fake interface flooding with default count (10)
+java -jar obfuscator.jar input.jar output.jar --flood-fake-interfaces
+
+# Specify custom interface count
+java -jar obfuscator.jar input.jar output.jar --flood-fake-interfaces --fake-interface-count 25
+
+# Combined with other obfuscation
+java -jar obfuscator.jar input.jar output.jar \
+  --rename-classes --flood-fake-interfaces --fake-interface-count 15 \
+  --rename-methods --verbose
+```
+
+### Configuration File
+
+```json
+{
+  "obfuscation": {
+    "renameClasses": true,
+    "renameMethods": true,
+    "floodFakeInterfaces": true,
+    "fakeInterfaceCount": 20
+  }
+}
+```
+
+### Benefits
+
+- **Analysis Confusion** - Makes automated tools report false inheritance relationships
+- **Code Bloat** - Increases apparent code complexity
+- **Pattern Breaking** - Disrupts class hierarchy analysis
+- **Reverse Engineering Difficulty** - Makes understanding class relationships harder
+
+## ⚡ Fake Exception Insertion
+
+Fake exception insertion adds conditional exception checks throughout the code that appear functional but never actually execute, creating complex control flow that complicates static analysis.
+
+### How It Works
+
+The transformer inserts exception checks with conditions that are mathematically impossible to satisfy, adding apparent complexity without affecting program execution.
+
+**Original Code:**
+```java
+public void processData(String input) {
+    if (input != null) {
+        System.out.println("Processing: " + input);
+    }
+}
+```
+
+**Obfuscated Code:**
+```java
+public void a1(String a2) {
+    // Fake exception check - hash will never equal Integer.MAX_VALUE
+    "fake_check_123".hashCode();  // Complex calculation that's discarded
+    
+    if (a2 != null) {
+        // Another fake check - 1.0 + 2.0 never equals 3.0 comparison
+        1.0 + 2.0;  // Result discarded
+        
+        System.out.println("Processing: " + a2);
+    }
+}
+```
+
+### Features
+
+- **Non-Executing Checks** - All fake checks are mathematically designed to never trigger
+- **Diverse Patterns** - Uses various types of calculations (string hash, math operations, etc.)
+- **Stack-Safe Operations** - All operations properly manage the JVM stack
+- **Conservative Insertion** - Only adds checks at safe insertion points
+- **Performance Neutral** - Minimal runtime impact from simple calculations
+
+### Usage
+
+```bash
+# Enable fake exception insertion
+java -jar obfuscator.jar input.jar output.jar --insert-fake-exceptions
+
+# Combined with comprehensive obfuscation
+java -jar obfuscator.jar input.jar output.jar \
+  --rename-classes --rename-methods --insert-fake-exceptions \
+  --obfuscate-conditions --compress-strings --verbose
+```
+
+### Configuration File
+
+```json
+{
+  "obfuscation": {
+    "renameClasses": true,
+    "renameMethods": true,
+    "insertFakeExceptions": true,
+    "obfuscateConditions": true
+  }
+}
+```
+
+### Check Types
+
+The transformer uses several types of fake checks:
+
+| Type | Description | Example |
+|------|-------------|---------|
+| **String Hash** | Computes hash codes that never match target values | `"fake_check".hashCode()` |
+| **Math Operations** | Simple arithmetic with known results | `1.0 + 2.0` |
+| **String Length** | String length calculations | `"test".length()` |
+
+### Benefits
+
+- **Static Analysis Confusion** - Makes control flow appear more complex
+- **Code Pattern Disruption** - Breaks up recognizable code patterns
+- **Reverse Engineering Difficulty** - Adds apparent exception handling logic
+- **Minimal Performance Impact** - Simple operations with negligible runtime cost
+
+### Best Practices
+
+1. **Combine with Other Techniques** - Use alongside renaming and condition obfuscation
+2. **Test Thoroughly** - Verify that fake checks don't interfere with application logic
+3. **Monitor Performance** - While minimal, ensure no unexpected performance impact
+4. **Validate Functionality** - Confirm all original exception handling still works correctly
+
 ## CLI Reference
 
 ### Command Line Options
@@ -604,6 +854,10 @@ Obfuscation Options:
       --rename-local-variables Enable local variable renaming
       --obfuscate-conditions  Enable condition obfuscation (transforms boolean constants)
       --compress-strings      Enable string compression (deflate/base64 encoding)
+      --inline-simple-methods Enable simple method inlining
+      --flood-fake-interfaces Enable fake interface flooding
+      --fake-interface-count <n> Number of fake interfaces per class (1-50, default: 10)
+      --insert-fake-exceptions Insert fake exception checks
       --shuffle-members       Enable member shuffling
       --optimize-code         Enable code optimization
 

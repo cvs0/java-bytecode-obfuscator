@@ -222,6 +222,8 @@ public class ObfuscationEngine
             Logger.warning("Transformation completed with " + errors + " errors");
         }
         
+        addGeneratedClasses(result, context);
+        
         return result;
     }
     
@@ -322,7 +324,19 @@ public class ObfuscationEngine
             }
         }
         
+        addGeneratedClasses(result, context);
+        
         return result;
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void addGeneratedClasses(Map<String, byte[]> result, ObfuscationContext context)
+    {
+        Map<String, byte[]> generatedInterfaces = (Map<String, byte[]>) context.getProperty("fakeInterfaceTransformer.generatedInterfaces");
+        if (generatedInterfaces != null && !generatedInterfaces.isEmpty()) {
+            Logger.debug("Adding " + generatedInterfaces.size() + " generated fake interfaces to output");
+            result.putAll(generatedInterfaces);
+        }
     }
     
     private void setupMappingManager(ObfuscationContext context, Map<String, byte[]> inputClasses)
@@ -639,8 +653,6 @@ public class ObfuscationEngine
                 }
                 
                 classes.put(className, classBytes);
-                Logger.debug("Loaded class: " + className + " (" + classBytes.length + " bytes)");
-                
             } catch (IllegalArgumentException e) {
                 Logger.warning("Skipping class with invalid bytecode structure " + entry.getName() + ": " + e.getMessage());
             } catch (ArrayIndexOutOfBoundsException e) {

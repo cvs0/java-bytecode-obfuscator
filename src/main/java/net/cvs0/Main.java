@@ -49,6 +49,18 @@ public class Main implements Callable<Integer>
     @Option(names = {"--compress-strings"}, description = "Enable string compression (compresses string literals using deflate/base64)")
     private Boolean compressStrings;
 
+    @Option(names = {"--flood-fake-interfaces"}, description = "Enable fake interface flooding (adds confusing fake interfaces to classes)")
+    private Boolean floodFakeInterfaces;
+
+    @Option(names = {"--fake-interface-count"}, description = "Number of fake interfaces to add per class (1-50, default: 10)")
+    private Integer fakeInterfaceCount;
+
+    @Option(names = {"--inline-simple-methods"}, description = "Enable simple method inlining (inlines short methods to reduce call overhead)")
+    private Boolean inlineSimpleMethods;
+
+    @Option(names = {"--insert-fake-exceptions"}, description = "Insert fake exception checks (adds complex conditional exception throws that never execute)")
+    private Boolean insertFakeExceptions;
+
     @Option(names = {"--mappings", "--output-mappings"}, description = "Output mappings file")
     private File mappingsFile;
 
@@ -408,6 +420,22 @@ public class Main implements Callable<Integer>
         
         if (compressStrings != null) {
             builder.compressStrings(compressStrings);
+        }
+        
+        if (floodFakeInterfaces != null) {
+            builder.floodFakeInterfaces(floodFakeInterfaces);
+        }
+        
+        if (fakeInterfaceCount != null) {
+            builder.fakeInterfaceCount(fakeInterfaceCount);
+        }
+        
+        if (inlineSimpleMethods != null) {
+            builder.inlineSimpleMethods(inlineSimpleMethods);
+        }
+        
+        if (insertFakeExceptions != null) {
+            builder.insertFakeExceptions(insertFakeExceptions);
         }
         
         if (verbose) {

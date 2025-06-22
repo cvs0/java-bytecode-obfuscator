@@ -34,6 +34,10 @@ public class ObfuscationConfig
     private final int maxThreads;
     private final boolean enableBackup;
     private final String backupDir;
+    private final boolean floodFakeInterfaces;
+    private final int fakeInterfaceCount;
+    private final boolean inlineSimpleMethods;
+    private final boolean insertFakeExceptions;
 
     public enum ObfuscationLevel
     {
@@ -84,11 +88,15 @@ public class ObfuscationConfig
             boolean shuffleMembers,
             int maxThreads,
             boolean enableBackup,
-            String backupDir)
+            String backupDir,
+            boolean floodFakeInterfaces,
+            int fakeInterfaceCount,
+            boolean inlineSimpleMethods,
+            boolean insertFakeExceptions)
     {
         validateConfigurationInputs(mainClass, packageScope, maxThreads, backupDir, enableBackup, 
                                    customSettings, excludePackages, includePackages,
-                                   renameLocalVariables, preserveLocalVariableNames);
+                                   renameLocalVariables, preserveLocalVariableNames, fakeInterfaceCount);
         
         this.mainClass = sanitizeClassName(mainClass);
         this.renameClasses = renameClasses;
@@ -118,13 +126,17 @@ public class ObfuscationConfig
         this.maxThreads = validateMaxThreads(maxThreads);
         this.enableBackup = enableBackup;
         this.backupDir = sanitizeBackupDir(backupDir, enableBackup);
+        this.floodFakeInterfaces = floodFakeInterfaces;
+        this.fakeInterfaceCount = Math.max(1, Math.min(fakeInterfaceCount, 50));
+        this.inlineSimpleMethods = inlineSimpleMethods;
+        this.insertFakeExceptions = insertFakeExceptions;
     }
     
     private void validateConfigurationInputs(String mainClass, String packageScope, int maxThreads,
                                            String backupDir, boolean enableBackup,
                                            Map<String, Object> customSettings,
                                            List<String> excludePackages, List<String> includePackages,
-                                           boolean renameLocalVariables, boolean preserveLocalVariableNames)
+                                           boolean renameLocalVariables, boolean preserveLocalVariableNames, int fakeInterfaceCount)
     {
         if (mainClass != null && mainClass.length() > 1000) {
             throw new IllegalArgumentException("Main class name is too long (> 1000 characters)");
@@ -160,6 +172,14 @@ public class ObfuscationConfig
         
         if (renameLocalVariables && preserveLocalVariableNames) {
             throw new IllegalArgumentException("Cannot rename local variables while preserving their names");
+        }
+        
+        if (fakeInterfaceCount < 0) {
+            throw new IllegalArgumentException("Fake interface count cannot be negative");
+        }
+        
+        if (fakeInterfaceCount > 50) {
+            throw new IllegalArgumentException("Fake interface count is too high (> 50)");
         }
     }
     
@@ -425,6 +445,26 @@ public class ObfuscationConfig
         return backupDir;
     }
     
+    public boolean isFloodFakeInterfaces()
+    {
+        return floodFakeInterfaces;
+    }
+    
+    public int getFakeInterfaceCount()
+    {
+        return fakeInterfaceCount;
+    }
+    
+    public boolean isInlineSimpleMethods()
+    {
+        return inlineSimpleMethods;
+    }
+    
+    public boolean isInsertFakeExceptions()
+    {
+        return insertFakeExceptions;
+    }
+    
     public boolean shouldKeepClass(String className)
     {
         return keepRules.shouldKeepClass(className);
@@ -609,6 +649,10 @@ public class ObfuscationConfig
         private int maxThreads = Runtime.getRuntime().availableProcessors();
         private boolean enableBackup = false;
         private String backupDir;
+        private boolean floodFakeInterfaces = false;
+        private int fakeInterfaceCount = 10;
+        private boolean inlineSimpleMethods = false;
+        private boolean insertFakeExceptions = false;
         
         public Builder mainClass(String mainClass)
         {
@@ -845,6 +889,30 @@ public class ObfuscationConfig
             return this;
         }
         
+        public Builder floodFakeInterfaces(boolean flood)
+        {
+            this.floodFakeInterfaces = flood;
+            return this;
+        }
+        
+        public Builder fakeInterfaceCount(int count)
+        {
+            this.fakeInterfaceCount = Math.max(1, Math.min(count, 50));
+            return this;
+        }
+        
+        public Builder inlineSimpleMethods(boolean inline)
+        {
+            this.inlineSimpleMethods = inline;
+            return this;
+        }
+        
+        public Builder insertFakeExceptions(boolean insert)
+        {
+            this.insertFakeExceptions = insert;
+            return this;
+        }
+        
         private void applyPresetForLevel(ObfuscationLevel level)
         {
             switch (level) {
@@ -879,6 +947,10 @@ public class ObfuscationConfig
                     vmDetectionLevel = AntiDebugger.VMDetectionLevel.COMPREHENSIVE;
                     namingMode = NamingMode.RANDOM_SHORT;
                     shuffleMembers = true;
+                    floodFakeInterfaces = true;
+                    fakeInterfaceCount = 15;
+                    inlineSimpleMethods = true;
+                    insertFakeExceptions = true;
                     break;
                     
                 case EXTREME:
@@ -894,6 +966,10 @@ public class ObfuscationConfig
                     namingMode = NamingMode.RANDOM_LONG;
                     shuffleMembers = true;
                     compressStrings = true;
+                    floodFakeInterfaces = true;
+                    fakeInterfaceCount = 25;
+                    inlineSimpleMethods = true;
+                    insertFakeExceptions = true;
                     break;
                     
                 case CUSTOM:
@@ -915,7 +991,8 @@ public class ObfuscationConfig
                 antiDebugging, debuggerAction, vmDetection, vmDetectionLevel, generateScore, sequentialTransformers,
                 obfuscationLevel, customSettings, excludePackages, includePackages,
                 preserveLineNumbers, preserveLocalVariableNames, optimizeCode, 
-                compressStrings, shuffleMembers, maxThreads, enableBackup, backupDir
+                compressStrings, shuffleMembers, maxThreads, enableBackup, backupDir,
+                floodFakeInterfaces, fakeInterfaceCount, inlineSimpleMethods, insertFakeExceptions
             );
         }
         
