@@ -3,7 +3,7 @@ plugins {
     id 'application'
 }
 
-group = 'cc.squidhackdevelopment'
+group = 'net.cvs0'
 version = '1.0-SNAPSHOT'
 
 java {
@@ -13,6 +13,10 @@ java {
 
 repositories {
     mavenCentral()
+    maven {
+        name = 'Fabric'
+        url = 'https://maven.fabricmc.net/'
+    }
 }
 
 dependencies {
@@ -21,6 +25,7 @@ dependencies {
     implementation 'org.ow2.asm:asm-commons:9.7'
     implementation 'org.ow2.asm:asm-util:9.7'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'net.fabricmc:tiny-remapper:0.8.11'
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }

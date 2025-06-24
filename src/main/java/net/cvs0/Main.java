@@ -4,11 +4,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import net.cvs0.config.ObfuscationConfig;
-import net.cvs0.config.ConfigLoader;
-import net.cvs0.config.NamingMode;
-import net.cvs0.mappings.export.MappingExporter;
-import net.cvs0.utils.AntiDebugger;
+import net.cvs0.config.*;
+import net.cvs0.core.Obfuscator;
 import net.cvs0.utils.Logger;
 
 import java.io.File;
@@ -40,42 +37,6 @@ public class Main implements Callable<Integer>
     @Option(names = {"--rename-methods"}, description = "Enable method renaming")
     private Boolean renameMethods;
 
-    @Option(names = {"--rename-local-variables"}, description = "Enable local variable renaming")
-    private Boolean renameLocalVariables;
-
-    @Option(names = {"--obfuscate-conditions"}, description = "Enable condition obfuscation (transforms true/false into complex expressions)")
-    private Boolean obfuscateConditions;
-
-    @Option(names = {"--compress-strings"}, description = "Enable string compression (compresses string literals using deflate/base64)")
-    private Boolean compressStrings;
-
-    @Option(names = {"--flood-fake-interfaces"}, description = "Enable fake interface flooding (adds confusing fake interfaces to classes)")
-    private Boolean floodFakeInterfaces;
-
-    @Option(names = {"--fake-interface-count"}, description = "Number of fake interfaces to add per class (1-50, default: 10)")
-    private Integer fakeInterfaceCount;
-
-    @Option(names = {"--inline-simple-methods"}, description = "Enable simple method inlining (inlines short methods to reduce call overhead)")
-    private Boolean inlineSimpleMethods;
-
-    @Option(names = {"--insert-fake-exceptions"}, description = "Insert fake exception checks (adds complex conditional exception throws that never execute)")
-    private Boolean insertFakeExceptions;
-
-    @Option(names = {"--mappings", "--output-mappings"}, description = "Output mappings file")
-    private File mappingsFile;
-
-    @Option(names = {"--mapping-format"}, 
-            description = "Mapping output format (default: auto-detect from file extension):%n" +
-                         "  PROGUARD - ProGuard mapping format%n" +
-                         "  SRG - SRG (Mod Coder Pack) format%n" +
-                         "  TINY - Tiny mapping format%n" +
-                         "  JSON - JSON format%n" +
-                         "  CSV - CSV format%n" +
-                         "  HUMAN_READABLE - Human readable format%n" +
-                         "  RETRACE - Retrace format%n" +
-                         "  ALL - Export all formats")
-    private String mappingFormat;
-
     @Option(names = {"-v", "--verbose"}, description = "Enable verbose output")
     private boolean verbose;
 
@@ -100,36 +61,14 @@ public class Main implements Callable<Integer>
                          "  SINGLE_CHAR - Single character names (a, b, c...)")
     private NamingMode namingMode;
 
-    @Option(names = {"--anti-debugging"}, description = "Enable anti-debugging protection")
-    private Boolean antiDebugging;
-
-    @Option(names = {"--debugger-action"}, 
-            description = "Action to take when debugger is detected:%n" +
-                         "  EXIT_SILENTLY - Exit without error%n" +
-                         "  EXIT_WITH_ERROR - Exit with error code%n" +  
-                         "  CORRUPT_EXECUTION - Corrupt execution flow%n" +
-                         "  INFINITE_LOOP - Enter infinite loop%n" +
-                         "  FAKE_EXECUTION - Continue with fake behavior")
-    private AntiDebugger.DebuggerAction debuggerAction;
-
-    @Option(names = {"--vm-detection"}, description = "Enable virtual machine detection")
-    private Boolean vmDetection;
-
-    @Option(names = {"--vm-detection-level"}, 
-            description = "Virtual machine detection level:%n" +
-                         "  BASIC - Basic VM detection (VM name, OS checks)%n" +
-                         "  COMPREHENSIVE - Advanced detection (CPU, memory, timing)%n" +
-                         "  PARANOID - Paranoid detection (timing attacks, sandbox indicators)")
-    private AntiDebugger.VMDetectionLevel vmDetectionLevel;
-
-    @Option(names = {"--generate-score"}, description = "Generate obfuscation resistance score")
-    private Boolean generateScore;
-
     @Option(names = {"--sequential-transformers"}, description = "Run transformers sequentially - each transformer processes all classes before the next starts (disabled by default)")
     private Boolean sequentialTransformers;
 
     @Option(names = {"--include-package"}, description = "Include specific package for obfuscation (can be used multiple times, e.g., com.example, org.myapp)")
     private List<String> includePackages;
+
+    @Option(names = {"--stay-in-scope"}, description = "Only obfuscate classes within the same package scope as the main class (first two parts, e.g., net.cvs0.Main -> net.cvs0)")
+    private boolean stayInScope;
 
     public static void main(String[] args)
     {
@@ -223,12 +162,10 @@ public class Main implements Callable<Integer>
                 printHeader(config);
             }
 
-            MappingExporter.MappingFormat format = parseMappingFormat();
-            
             createBackupIfNeeded(config);
             
             Obfuscator obfuscator = new Obfuscator();
-            obfuscator.obfuscate(inputJar, outputJar, config, mappingsFile, format);
+            obfuscator.obfuscate(inputJar, outputJar, config);
             
             long duration = System.currentTimeMillis() - startTime;
             Logger.success("Obfuscation completed successfully in " + duration + "ms");
@@ -300,13 +237,6 @@ public class Main implements Callable<Integer>
         if (configFile != null && !configFile.exists()) {
             throw new java.nio.file.NoSuchFileException("Configuration file does not exist: " + configFile.getAbsolutePath());
         }
-        
-        if (mappingsFile != null) {
-            File mappingsParent = mappingsFile.getParentFile();
-            if (mappingsParent != null && !mappingsParent.exists() && !mappingsParent.mkdirs()) {
-                throw new java.io.IOException("Cannot create mappings directory: " + mappingsParent.getAbsolutePath());
-            }
-        }
     }
     
     private void validateConfiguration(ObfuscationConfig config) throws Exception
@@ -340,9 +270,6 @@ public class Main implements Callable<Integer>
         System.out.println("Java Bytecode Obfuscator v1.0.0");
         System.out.println("Input JAR: " + inputJar.getAbsolutePath() + " (" + (inputJar.length() / 1024) + " KB)");
         System.out.println("Output JAR: " + outputJar.getAbsolutePath());
-        if (mappingsFile != null) {
-            System.out.println("Mappings file: " + mappingsFile.getAbsolutePath());
-        }
         System.out.println("Naming mode: " + config.getNamingMode().name() + " - " + config.getNamingMode().getDescription());
         System.out.println("Obfuscation level: " + config.getObfuscationLevel().name());
         System.out.println("Max threads: " + config.getMaxThreads());
@@ -410,37 +337,7 @@ public class Main implements Callable<Integer>
             builder.renameMethods(renameMethods);
         }
         
-        if (renameLocalVariables != null) {
-            builder.renameLocalVariables(renameLocalVariables);
-        }
-        
-        if (obfuscateConditions != null) {
-            builder.obfuscateConditions(obfuscateConditions);
-        }
-        
-        if (compressStrings != null) {
-            builder.compressStrings(compressStrings);
-        }
-        
-        if (floodFakeInterfaces != null) {
-            builder.floodFakeInterfaces(floodFakeInterfaces);
-        }
-        
-        if (fakeInterfaceCount != null) {
-            builder.fakeInterfaceCount(fakeInterfaceCount);
-        }
-        
-        if (inlineSimpleMethods != null) {
-            builder.inlineSimpleMethods(inlineSimpleMethods);
-        }
-        
-        if (insertFakeExceptions != null) {
-            builder.insertFakeExceptions(insertFakeExceptions);
-        }
-        
-        if (verbose) {
-            builder.verbose(true);
-        }
+        builder.verbose(verbose);
         
         if (keepClasses != null) {
             for (String className : keepClasses) {
@@ -456,35 +353,15 @@ public class Main implements Callable<Integer>
         }
         
         if (keepMainClass) {
-            builder.keepMainClass();
+            builder.keepMainClass(keepMainClass);
         }
         
         if (keepStandardEntryPoints) {
-            builder.keepStandardEntryPoints();
+            builder.keepStandardEntryPoints(keepStandardEntryPoints);
         }
         
         if (namingMode != null) {
             builder.namingMode(namingMode);
-        }
-        
-        if (antiDebugging != null) {
-            builder.antiDebugging(antiDebugging);
-        }
-        
-        if (debuggerAction != null) {
-            builder.debuggerAction(debuggerAction);
-        }
-        
-        if (vmDetection != null) {
-            builder.vmDetection(vmDetection);
-        }
-        
-        if (vmDetectionLevel != null) {
-            builder.vmDetectionLevel(vmDetectionLevel);
-        }
-        
-        if (generateScore != null) {
-            builder.generateScore(generateScore);
         }
         
         if (sequentialTransformers != null) {
@@ -501,28 +378,14 @@ public class Main implements Callable<Integer>
             }
         }
         
-        // Set defaults if no rename options specified and no config file
-        if (configFile == null && renameClasses == null && renameFields == null && renameMethods == null && renameLocalVariables == null && obfuscateConditions == null) {
+        builder.stayInScope(stayInScope);
+        
+        if (configFile == null && renameClasses == null && renameFields == null && renameMethods == null) {
             builder.renameClasses(true)
                    .renameFields(true)  
-                   .renameMethods(true)
-                   .renameLocalVariables(true);
+                   .renameMethods(true);
         }
         
         return builder.build();
-    }
-    
-    private MappingExporter.MappingFormat parseMappingFormat()
-    {
-        if (mappingFormat == null || mappingFormat.equalsIgnoreCase("AUTO")) {
-            return null;
-        }
-        
-        try {
-            return MappingExporter.MappingFormat.valueOf(mappingFormat.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            System.err.println("Warning: Unknown mapping format '" + mappingFormat + "', using auto-detection");
-            return null;
-        }
     }
 }

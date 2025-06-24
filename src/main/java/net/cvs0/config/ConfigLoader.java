@@ -2,373 +2,250 @@ package net.cvs0.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import net.cvs0.utils.AntiDebugger;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.*;
 
-public class ConfigLoader
+public class ConfigLoader 
 {
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    
-    public ObfuscationConfig.Builder loadConfig(File configFile) throws IOException
+    private final ObjectMapper objectMapper;
+
+    public ConfigLoader() 
     {
-        if (!configFile.exists()) {
-            throw new IOException("Configuration file does not exist: " + configFile.getAbsolutePath());
-        }
-        
+        this.objectMapper = new ObjectMapper();
+    }
+
+    public ObfuscationConfig.Builder loadConfig(File configFile) throws IOException 
+    {
         JsonNode root = objectMapper.readTree(configFile);
         ObfuscationConfig.Builder builder = new ObfuscationConfig.Builder();
-        
-        parseBasicSettings(root, builder);
-        parseKeepRules(root, builder);
-        parseAdvancedSettings(root, builder);
-        parsePackageSettings(root, builder);
-        parsePerformanceSettings(root, builder);
-        
-        return builder;
-    }
-    
-    private void parseBasicSettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        if (root.has("mainClass")) {
-            builder.mainClass(root.get("mainClass").asText());
+
+        if (root.has("renameClasses")) {
+            builder.renameClasses(root.get("renameClasses").asBoolean());
         }
         
-        if (root.has("obfuscationLevel")) {
-            String levelStr = root.get("obfuscationLevel").asText();
-            try {
-                ObfuscationConfig.ObfuscationLevel level = ObfuscationConfig.ObfuscationLevel.valueOf(levelStr.toUpperCase());
-                builder.obfuscationLevel(level);
-            } catch (IllegalArgumentException e) {
-                System.err.println("Warning: Invalid obfuscation level '" + levelStr + "', using default");
-            }
+        if (root.has("renameFields")) {
+            builder.renameFields(root.get("renameFields").asBoolean());
         }
         
-        parseObfuscationSettings(root, builder);
-        parseNamingSettings(root, builder);
-        parseSecuritySettings(root, builder);
-        parseDebuggingSettings(root, builder);
+        if (root.has("renameMethods")) {
+            builder.renameMethods(root.get("renameMethods").asBoolean());
+        }
+        
+        if (root.has("renameLocalVariables")) {
+            builder.renameLocalVariables(root.get("renameLocalVariables").asBoolean());
+        }
+        
+        if (root.has("stripDebugInfo")) {
+            builder.stripDebugInfo(root.get("stripDebugInfo").asBoolean());
+        }
+        
+        if (root.has("obfuscateControlFlow")) {
+            builder.obfuscateControlFlow(root.get("obfuscateControlFlow").asBoolean());
+        }
+        
+        if (root.has("enableBackup")) {
+            builder.enableBackup(root.get("enableBackup").asBoolean());
+        }
         
         if (root.has("verbose")) {
             builder.verbose(root.get("verbose").asBoolean());
         }
         
+        if (root.has("keepMainClass")) {
+            builder.keepMainClass(root.get("keepMainClass").asBoolean());
+        }
+        
+        if (root.has("keepStandardEntryPoints")) {
+            builder.keepStandardEntryPoints(root.get("keepStandardEntryPoints").asBoolean());
+        }
+        
         if (root.has("sequentialTransformers")) {
             builder.sequentialTransformers(root.get("sequentialTransformers").asBoolean());
         }
-    }
-    
-    private void parseObfuscationSettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        JsonNode obfuscation = root.get("obfuscation");
-        if (obfuscation == null) obfuscation = root;
-        
-        if (obfuscation.has("renameClasses")) {
-            builder.renameClasses(obfuscation.get("renameClasses").asBoolean());
+
+        if (root.has("mainClass")) {
+            builder.mainClass(root.get("mainClass").asText());
         }
         
-        if (obfuscation.has("renameFields")) {
-            builder.renameFields(obfuscation.get("renameFields").asBoolean());
+        if (root.has("backupDir")) {
+            builder.backupDir(root.get("backupDir").asText());
         }
         
-        if (obfuscation.has("renameMethods")) {
-            builder.renameMethods(obfuscation.get("renameMethods").asBoolean());
-        }
-        
-        if (obfuscation.has("renameLocalVariables")) {
-            builder.renameLocalVariables(obfuscation.get("renameLocalVariables").asBoolean());
-        }
-        
-        if (obfuscation.has("obfuscateConditions")) {
-            builder.obfuscateConditions(obfuscation.get("obfuscateConditions").asBoolean());
-        }
-        
-        if (obfuscation.has("compressStrings")) {
-            builder.compressStrings(obfuscation.get("compressStrings").asBoolean());
-        }
-        
-        if (obfuscation.has("shuffleMembers")) {
-            builder.shuffleMembers(obfuscation.get("shuffleMembers").asBoolean());
-        }
-        
-        if (obfuscation.has("optimizeCode")) {
-            builder.optimizeCode(obfuscation.get("optimizeCode").asBoolean());
-        }
-    }
-    
-    private void parseNamingSettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        JsonNode naming = root.get("naming");
-        if (naming == null) naming = root;
-        
-        if (naming.has("namingMode")) {
-            String namingModeStr = naming.get("namingMode").asText();
+        if (root.has("namingMode")) {
             try {
-                NamingMode namingMode = NamingMode.valueOf(namingModeStr);
-                builder.namingMode(namingMode);
+                NamingMode mode = NamingMode.valueOf(root.get("namingMode").asText().toUpperCase());
+                builder.namingMode(mode);
             } catch (IllegalArgumentException e) {
-                System.err.println("Warning: Invalid naming mode '" + namingModeStr + "', using default");
+                throw new IOException("Invalid naming mode: " + root.get("namingMode").asText());
             }
         }
-    }
-    
-    private void parseSecuritySettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        JsonNode security = root.get("security");
-        if (security == null) security = root;
         
-        if (security.has("antiDebugging")) {
-            builder.antiDebugging(security.get("antiDebugging").asBoolean());
-        }
-        
-        if (security.has("debuggerAction")) {
-            String debuggerActionStr = security.get("debuggerAction").asText();
+        if (root.has("obfuscationLevel")) {
             try {
-                AntiDebugger.DebuggerAction debuggerAction = AntiDebugger.DebuggerAction.valueOf(debuggerActionStr);
-                builder.debuggerAction(debuggerAction);
+                ObfuscationLevel level = ObfuscationLevel.valueOf(root.get("obfuscationLevel").asText().toUpperCase());
+                builder.obfuscationLevel(level);
             } catch (IllegalArgumentException e) {
-                System.err.println("Warning: Invalid debugger action '" + debuggerActionStr + "', using default");
+                throw new IOException("Invalid obfuscation level: " + root.get("obfuscationLevel").asText());
             }
         }
-    }
-    
-    private void parseDebuggingSettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        JsonNode debugging = root.get("debugging");
-        if (debugging == null) debugging = root;
         
-        if (debugging.has("preserveLineNumbers")) {
-            builder.preserveLineNumbers(debugging.get("preserveLineNumbers").asBoolean());
+        if (root.has("maxThreads")) {
+            builder.maxThreads(root.get("maxThreads").asInt());
+        }
+
+        if (root.has("keepClasses")) {
+            JsonNode keepClasses = root.get("keepClasses");
+            if (keepClasses.isArray()) {
+                List<String> classes = new ArrayList<>();
+                for (JsonNode node : keepClasses) {
+                    classes.add(node.asText());
+                }
+                builder.keepClasses(classes);
+            }
         }
         
-        if (debugging.has("preserveLocalVariableNames")) {
-            builder.preserveLocalVariableNames(debugging.get("preserveLocalVariableNames").asBoolean());
+        if (root.has("keepClassPatterns")) {
+            JsonNode keepClassPatterns = root.get("keepClassPatterns");
+            if (keepClassPatterns.isArray()) {
+                List<String> patterns = new ArrayList<>();
+                for (JsonNode node : keepClassPatterns) {
+                    patterns.add(node.asText());
+                }
+                builder.keepClassPatterns(patterns);
+            }
         }
         
-        if (debugging.has("verbose")) {
-            builder.verbose(debugging.get("verbose").asBoolean());
+        if (root.has("keepMethods")) {
+            JsonNode keepMethods = root.get("keepMethods");
+            if (keepMethods.isArray()) {
+                List<String> methods = new ArrayList<>();
+                for (JsonNode node : keepMethods) {
+                    methods.add(node.asText());
+                }
+                builder.keepMethods(methods);
+            }
         }
         
-        if (debugging.has("generateScore")) {
-            builder.generateScore(debugging.get("generateScore").asBoolean());
-        }
-    }
-    
-    private void parseAdvancedSettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        if (root.has("preserveLineNumbers")) {
-            builder.preserveLineNumbers(root.get("preserveLineNumbers").asBoolean());
-        }
-        
-        if (root.has("preserveLocalVariableNames")) {
-            builder.preserveLocalVariableNames(root.get("preserveLocalVariableNames").asBoolean());
+        if (root.has("keepFields")) {
+            JsonNode keepFields = root.get("keepFields");
+            if (keepFields.isArray()) {
+                List<String> fields = new ArrayList<>();
+                for (JsonNode node : keepFields) {
+                    fields.add(node.asText());
+                }
+                builder.keepFields(fields);
+            }
         }
         
-        if (root.has("optimizeCode")) {
-            builder.optimizeCode(root.get("optimizeCode").asBoolean());
+        if (root.has("includePackages")) {
+            JsonNode includePackages = root.get("includePackages");
+            if (includePackages.isArray()) {
+                List<String> packages = new ArrayList<>();
+                for (JsonNode node : includePackages) {
+                    packages.add(node.asText());
+                }
+                builder.includePackages(packages);
+            }
         }
         
-        if (root.has("compressStrings")) {
-            builder.compressStrings(root.get("compressStrings").asBoolean());
+        if (root.has("excludePackages")) {
+            JsonNode excludePackages = root.get("excludePackages");
+            if (excludePackages.isArray()) {
+                List<String> packages = new ArrayList<>();
+                for (JsonNode node : excludePackages) {
+                    packages.add(node.asText());
+                }
+                builder.excludePackages(packages);
+            }
+        }
+
+        if (root.has("customMappings")) {
+            JsonNode customMappings = root.get("customMappings");
+            if (customMappings.isObject()) {
+                Map<String, String> mappings = new HashMap<>();
+                customMappings.fields().forEachRemaining(entry -> {
+                    mappings.put(entry.getKey(), entry.getValue().asText());
+                });
+                builder.customMappings(mappings);
+            }
         }
         
-        if (root.has("shuffleMembers")) {
-            builder.shuffleMembers(root.get("shuffleMembers").asBoolean());
-        }
-        
-        JsonNode customSettings = root.get("customSettings");
-        if (customSettings != null && customSettings.isObject()) {
-            customSettings.fields().forEachRemaining(entry -> {
-                String key = entry.getKey();
-                JsonNode value = entry.getValue();
-                
-                if (value.isTextual()) {
-                    builder.customSetting(key, value.asText());
-                } else if (value.isBoolean()) {
-                    builder.customSetting(key, value.asBoolean());
-                } else if (value.isNumber()) {
-                    if (value.isInt()) {
-                        builder.customSetting(key, value.asInt());
+        if (root.has("transformerOptions")) {
+            JsonNode transformerOptions = root.get("transformerOptions");
+            if (transformerOptions.isObject()) {
+                Map<String, Object> options = new HashMap<>();
+                transformerOptions.fields().forEachRemaining(entry -> {
+                    JsonNode value = entry.getValue();
+                    if (value.isBoolean()) {
+                        options.put(entry.getKey(), value.asBoolean());
+                    } else if (value.isInt()) {
+                        options.put(entry.getKey(), value.asInt());
+                    } else if (value.isDouble()) {
+                        options.put(entry.getKey(), value.asDouble());
                     } else {
-                        builder.customSetting(key, value.asDouble());
+                        options.put(entry.getKey(), value.asText());
                     }
-                } else {
-                    builder.customSetting(key, value.toString());
-                }
-            });
-        }
-    }
-    
-    private void parsePackageSettings(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        JsonNode packages = root.get("packages");
-        if (packages == null) packages = root;
-        
-        JsonNode excludePackages = packages.get("excludePackages");
-        if (excludePackages != null && excludePackages.isArray()) {
-            for (JsonNode packageNode : excludePackages) {
-                builder.excludePackage(packageNode.asText());
+                });
+                builder.transformerOptions(options);
             }
         }
-        
-        JsonNode includePackages = packages.get("includePackages");
-        if (includePackages != null && includePackages.isArray()) {
-            for (JsonNode packageNode : includePackages) {
-                builder.includePackage(packageNode.asText());
-            }
-        }
+
+        return builder;
     }
-    
-    private void parsePerformanceSettings(JsonNode root, ObfuscationConfig.Builder builder)
+
+    public void saveConfig(ObfuscationConfig config, File configFile) throws IOException 
     {
-        JsonNode performance = root.get("performance");
-        if (performance == null) performance = root;
+        Map<String, Object> configMap = new HashMap<>();
         
-        if (performance.has("maxThreads")) {
-            builder.maxThreads(performance.get("maxThreads").asInt());
+        configMap.put("renameClasses", config.isRenameClasses());
+        configMap.put("renameFields", config.isRenameFields());
+        configMap.put("renameMethods", config.isRenameMethods());
+        configMap.put("renameLocalVariables", config.isRenameLocalVariables());
+        configMap.put("stripDebugInfo", config.isStripDebugInfo());
+        configMap.put("obfuscateControlFlow", config.isObfuscateControlFlow());
+        configMap.put("enableBackup", config.isEnableBackup());
+        configMap.put("verbose", config.isVerbose());
+        configMap.put("keepMainClass", config.isKeepMainClass());
+        configMap.put("keepStandardEntryPoints", config.isKeepStandardEntryPoints());
+        configMap.put("sequentialTransformers", config.isSequentialTransformers());
+        
+        if (config.getMainClass() != null) {
+            configMap.put("mainClass", config.getMainClass());
         }
-        
-        if (performance.has("sequentialTransformers")) {
-            builder.sequentialTransformers(performance.get("sequentialTransformers").asBoolean());
-        }
-        
-        JsonNode backup = root.get("backup");
-        if (backup == null) backup = root;
-        
-        if (backup.has("enableBackup")) {
-            builder.enableBackup(backup.get("enableBackup").asBoolean());
-        }
-        
-        if (backup.has("backupDir")) {
-            builder.backupDir(backup.get("backupDir").asText());
-        }
-    }
-    
-    private void parseKeepRules(JsonNode root, ObfuscationConfig.Builder builder)
-    {
-        JsonNode keepRules = root.get("keepRules");
-        if (keepRules == null) {
-            return;
+        if (config.getBackupDir() != null) {
+            configMap.put("backupDir", config.getBackupDir());
         }
         
-        parseKeepClasses(keepRules, builder);
-        parseKeepMethods(keepRules, builder);
-        parseKeepFields(keepRules, builder);
-        parseConveniences(keepRules, builder);
-    }
-    
-    private void parseKeepClasses(JsonNode keepRules, ObfuscationConfig.Builder builder)
-    {
-        JsonNode keepClasses = keepRules.get("keepClasses");
-        if (keepClasses != null && keepClasses.isArray()) {
-            for (JsonNode classNode : keepClasses) {
-                builder.keepClass(classNode.asText());
-            }
-        }
+        configMap.put("namingMode", config.getNamingMode().name());
+        configMap.put("obfuscationLevel", config.getObfuscationLevel().name());
+        configMap.put("maxThreads", config.getMaxThreads());
         
-        JsonNode keepClassPatterns = keepRules.get("keepClassPatterns");
-        if (keepClassPatterns != null && keepClassPatterns.isArray()) {
-            for (JsonNode patternNode : keepClassPatterns) {
-                builder.keepClassPattern(patternNode.asText());
-            }
+        if (!config.getKeepClasses().isEmpty()) {
+            configMap.put("keepClasses", new ArrayList<>(config.getKeepClasses()));
         }
-    }
-    
-    private void parseKeepMethods(JsonNode keepRules, ObfuscationConfig.Builder builder)
-    {
-        JsonNode keepMethods = keepRules.get("keepMethods");
-        if (keepMethods != null && keepMethods.isObject()) {
-            keepMethods.fields().forEachRemaining(entry -> {
-                String className = entry.getKey();
-                JsonNode methods = entry.getValue();
-                
-                if (methods.isArray()) {
-                    for (JsonNode methodNode : methods) {
-                        if (methodNode.isTextual()) {
-                            builder.keepClassMethod(className, methodNode.asText());
-                        } else if (methodNode.isObject()) {
-                            String name = methodNode.get("name").asText();
-                            if (methodNode.has("descriptor")) {
-                                String descriptor = methodNode.get("descriptor").asText();
-                                builder.keepClassMethodWithDescriptor(className, name, descriptor);
-                            } else {
-                                builder.keepClassMethod(className, name);
-                            }
-                        }
-                    }
-                }
-            });
+        if (!config.getKeepClassPatterns().isEmpty()) {
+            configMap.put("keepClassPatterns", new ArrayList<>(config.getKeepClassPatterns()));
         }
-        
-        JsonNode keepMethodPatterns = keepRules.get("keepMethodPatterns");
-        if (keepMethodPatterns != null && keepMethodPatterns.isObject()) {
-            keepMethodPatterns.fields().forEachRemaining(entry -> {
-                String className = entry.getKey();
-                JsonNode patterns = entry.getValue();
-                
-                if (patterns.isArray()) {
-                    for (JsonNode patternNode : patterns) {
-                        builder.keepClassMethodPattern(className, patternNode.asText());
-                    }
-                }
-            });
+        if (!config.getKeepMethods().isEmpty()) {
+            configMap.put("keepMethods", new ArrayList<>(config.getKeepMethods()));
         }
-        
-        JsonNode keepAllMethods = keepRules.get("keepAllMethods");
-        if (keepAllMethods != null && keepAllMethods.isArray()) {
-            for (JsonNode classNode : keepAllMethods) {
-                builder.keepAllMethodsForClass(classNode.asText());
-            }
+        if (!config.getKeepFields().isEmpty()) {
+            configMap.put("keepFields", new ArrayList<>(config.getKeepFields()));
         }
-    }
-    
-    private void parseKeepFields(JsonNode keepRules, ObfuscationConfig.Builder builder)
-    {
-        JsonNode keepFields = keepRules.get("keepFields");
-        if (keepFields != null && keepFields.isObject()) {
-            keepFields.fields().forEachRemaining(entry -> {
-                String className = entry.getKey();
-                JsonNode fields = entry.getValue();
-                
-                if (fields.isArray()) {
-                    for (JsonNode fieldNode : fields) {
-                        builder.keepClassField(className, fieldNode.asText());
-                    }
-                }
-            });
+        if (!config.getIncludePackages().isEmpty()) {
+            configMap.put("includePackages", new ArrayList<>(config.getIncludePackages()));
         }
-        
-        JsonNode keepFieldPatterns = keepRules.get("keepFieldPatterns");
-        if (keepFieldPatterns != null && keepFieldPatterns.isObject()) {
-            keepFieldPatterns.fields().forEachRemaining(entry -> {
-                String className = entry.getKey();
-                JsonNode patterns = entry.getValue();
-                
-                if (patterns.isArray()) {
-                    for (JsonNode patternNode : patterns) {
-                        builder.keepClassFieldPattern(className, patternNode.asText());
-                    }
-                }
-            });
+        if (!config.getExcludePackages().isEmpty()) {
+            configMap.put("excludePackages", new ArrayList<>(config.getExcludePackages()));
         }
-        
-        JsonNode keepAllFields = keepRules.get("keepAllFields");
-        if (keepAllFields != null && keepAllFields.isArray()) {
-            for (JsonNode classNode : keepAllFields) {
-                builder.keepAllFieldsForClass(classNode.asText());
-            }
+        if (!config.getCustomMappings().isEmpty()) {
+            configMap.put("customMappings", config.getCustomMappings());
         }
-    }
-    
-    private void parseConveniences(JsonNode keepRules, ObfuscationConfig.Builder builder)
-    {
-        if (keepRules.has("keepMainClass") && keepRules.get("keepMainClass").asBoolean()) {
-            builder.keepMainClass();
+        if (!config.getTransformerOptions().isEmpty()) {
+            configMap.put("transformerOptions", config.getTransformerOptions());
         }
-        
-        if (keepRules.has("keepStandardEntryPoints") && keepRules.get("keepStandardEntryPoints").asBoolean()) {
-            builder.keepStandardEntryPoints();
-        }
+
+        objectMapper.writerWithDefaultPrettyPrinter().writeValue(configFile, configMap);
     }
 }
