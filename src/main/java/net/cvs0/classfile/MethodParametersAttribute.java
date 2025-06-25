@@ -36,7 +36,22 @@ public class MethodParametersAttribute extends Attribute
     @Override
     public byte[] getData()
     {
-        return new byte[0];
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            java.io.DataOutputStream dos = new java.io.DataOutputStream(baos);
+            
+            dos.writeByte(parameters.size());
+            
+            for (Parameter param : parameters) {
+                dos.writeShort(0);
+                dos.writeShort(param.getAccess());
+            }
+            
+            dos.close();
+            return baos.toByteArray();
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to serialize MethodParameters attribute", e);
+        }
     }
     
     @Override
@@ -47,7 +62,7 @@ public class MethodParametersAttribute extends Attribute
     
     public static class Parameter
     {
-        private final String name;
+        private String name;
         private final int access;
         
         public Parameter(String name, int access)
@@ -59,6 +74,11 @@ public class MethodParametersAttribute extends Attribute
         public String getName()
         {
             return name;
+        }
+        
+        public void setName(String name)
+        {
+            this.name = name;
         }
         
         public int getAccess()

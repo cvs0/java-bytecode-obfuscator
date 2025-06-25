@@ -85,9 +85,6 @@ public class JarAnalyzer
             String className = entryName.substring(0, entryName.length() - 6);
             
             if (shouldSkipClass(className)) {
-                if (config.isVerbose()) {
-                    Logger.debug("Skipping class: " + className);
-                }
                 return;
             }
 
@@ -146,6 +143,13 @@ public class JarAnalyzer
 
     private boolean shouldSkipClass(String className) 
     {
+        if (config.isStayInScope()) {
+            String scopePrefix = config.getScopePrefix();
+            if (scopePrefix != null && !className.startsWith(scopePrefix + "/")) {
+                return true;
+            }
+        }
+
         if (!config.getIncludePackages().isEmpty()) {
             boolean included = false;
             for (String includePackage : config.getIncludePackages()) {
@@ -262,6 +266,11 @@ public class JarAnalyzer
     private class MethodAnalysisVisitor extends MethodVisitor 
     {
         private final ProgramMethod method;
+        private LocalVariableTableAttribute localVariableTable;
+        private LocalVariableTypeTableAttribute localVariableTypeTable;
+        private LineNumberTableAttribute lineNumberTable;
+        private MethodParametersAttribute methodParameters;
+        private CodeAttribute codeAttribute;
 
         public MethodAnalysisVisitor(ProgramMethod method) {
             super(Opcodes.ASM9);
@@ -272,6 +281,10 @@ public class JarAnalyzer
         public void visitCode() 
         {
             method.setHasCode(true);
+            if (codeAttribute == null) {
+                codeAttribute = new CodeAttribute();
+                method.addAttribute(codeAttribute);
+            }
         }
 
         @Override
@@ -283,23 +296,42 @@ public class JarAnalyzer
         @Override
         public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) 
         {
-            LocalVariableTableAttribute localVar = new LocalVariableTableAttribute();
-            method.addAttribute(localVar);
+            if (codeAttribute != null) {
+                if (localVariableTable == null) {
+                    localVariableTable = new LocalVariableTableAttribute();
+                    codeAttribute.addAttribute(localVariableTable);
+                }
+                localVariableTable.addLocalVariable(0, 0, name, descriptor, index);
+                
+                if (signature != null && !signature.isEmpty()) {
+                    if (localVariableTypeTable == null) {
+                        localVariableTypeTable = new LocalVariableTypeTableAttribute();
+                        codeAttribute.addAttribute(localVariableTypeTable);
+                    }
+                    localVariableTypeTable.addLocalVariableType(0, 0, name, signature, index);
+                }
+            }
         }
 
         @Override
         public void visitLineNumber(int line, Label start) 
         {
-            LineNumberTableAttribute lineNumber = new LineNumberTableAttribute();
-            method.addAttribute(lineNumber);
+            if (codeAttribute != null) {
+                if (lineNumberTable == null) {
+                    lineNumberTable = new LineNumberTableAttribute();
+                    codeAttribute.addAttribute(lineNumberTable);
+                }
+            }
         }
 
         @Override
         public void visitParameter(String name, int access) 
         {
-            MethodParametersAttribute parameter = new MethodParametersAttribute();
-            parameter.addParameter(name, access);
-            method.addAttribute(parameter);
+            if (methodParameters == null) {
+                methodParameters = new MethodParametersAttribute();
+                method.addAttribute(methodParameters);
+            }
+            methodParameters.addParameter(name, access);
         }
     }
 

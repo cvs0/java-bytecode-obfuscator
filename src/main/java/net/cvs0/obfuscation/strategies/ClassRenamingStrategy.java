@@ -41,9 +41,16 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
 
     private void initializeKeepRules(Program program, ObfuscationConfig config, MappingContext mappingContext) 
     {
+        if (config.isVerbose()) {
+            Logger.debug("Initializing keep rules...");
+        }
+
         for (String keepClass : config.getKeepClasses()) {
             mappingContext.addKeepClass(keepClass);
             nameGenerator.addReservedName(keepClass);
+            if (config.isVerbose()) {
+                Logger.debug("Added explicit keep class: " + keepClass);
+            }
         }
 
         for (String pattern : config.getKeepClassPatterns()) {
@@ -52,6 +59,9 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
                 if (regex.matcher(cls.getName()).matches()) {
                     mappingContext.addKeepClass(cls.getName());
                     nameGenerator.addReservedName(cls.getName());
+                    if (config.isVerbose()) {
+                        Logger.debug("Added keep class by pattern '" + pattern + "': " + cls.getName());
+                    }
                 }
             }
         }
@@ -59,12 +69,21 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
         if (config.isKeepMainClass() && config.getMainClass() != null) {
             mappingContext.addKeepClass(config.getMainClass());
             nameGenerator.addReservedName(config.getMainClass());
+            if (config.isVerbose()) {
+                Logger.debug("Added keep main class: " + config.getMainClass());
+            }
         }
 
         if (config.isKeepStandardEntryPoints()) {
+            if (config.isVerbose()) {
+                Logger.debug("Adding standard entry points to keep list...");
+            }
             for (String entryPoint : program.getEntryPoints()) {
                 mappingContext.addKeepClass(entryPoint);
                 nameGenerator.addReservedName(entryPoint);
+                if (config.isVerbose()) {
+                    Logger.debug("Added entry point: " + entryPoint);
+                }
             }
         }
 
@@ -73,18 +92,32 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
                 String obfuscatedName = config.getCustomMappings().get(customMapping);
                 mappingContext.mapClass(customMapping, obfuscatedName);
                 nameGenerator.addReservedName(obfuscatedName);
+                if (config.isVerbose()) {
+                    Logger.debug("Added custom mapping: " + customMapping + " -> " + obfuscatedName);
+                }
             }
+        }
+
+        if (config.isVerbose()) {
+            Logger.debug("Keep rules initialization completed");
         }
     }
 
     private List<ProgramClass> identifyClassesToRename(Program program, ObfuscationConfig config, MappingContext mappingContext) 
     {
         List<ProgramClass> classesToRename = new ArrayList<>();
+        int totalClasses = 0;
 
         for (ProgramClass cls : program.getAllClasses()) {
+            totalClasses++;
+            
             if (shouldRenameClass(cls, config, mappingContext)) {
                 classesToRename.add(cls);
             }
+        }
+
+        if (config.isVerbose()) {
+            Logger.debug("Total classes in program: " + totalClasses);
         }
 
         classesToRename.sort((c1, c2) -> {
@@ -94,6 +127,13 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
             }
             return c1.getName().compareTo(c2.getName());
         });
+
+        if (config.isVerbose()) {
+            Logger.debug("Identified " + classesToRename.size() + " classes for renaming");
+            for (ProgramClass cls : classesToRename) {
+                Logger.debug("  - " + cls.getName());
+            }
+        }
 
         return classesToRename;
     }
@@ -115,6 +155,10 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
             return false;
         }
 
+        if (isThirdPartyLibrary(className)) {
+            return false;
+        }
+
         if (!config.getIncludePackages().isEmpty()) {
             boolean included = false;
             for (String includePackage : config.getIncludePackages()) {
@@ -125,6 +169,9 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
                 }
             }
             if (!included) {
+                if (config.isVerbose()) {
+                    Logger.debug("  -> Skipping: not in include packages");
+                }
                 return false;
             }
         }
@@ -132,25 +179,41 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
         for (String excludePackage : config.getExcludePackages()) {
             String packagePrefix = excludePackage.replace('.', '/');
             if (className.startsWith(packagePrefix)) {
+                if (config.isVerbose()) {
+                    Logger.debug("  -> Skipping: in exclude packages");
+                }
                 return false;
             }
         }
 
         if (cls.isAnnotation() && config.getObfuscationLevel().ordinal() < 2) {
+            if (config.isVerbose()) {
+                Logger.debug("  -> Skipping: annotation at low obfuscation level");
+            }
             return false;
         }
 
         if (cls.getName().contains("$") && cls.isAnonymousClass()) {
-            return config.getObfuscationLevel().ordinal() >= 2;
+            boolean shouldRename = config.getObfuscationLevel().ordinal() >= 2;
+            if (config.isVerbose()) {
+                Logger.debug("  -> Anonymous class, should rename: " + shouldRename);
+            }
+            return shouldRename;
         }
 
         if (config.isStayInScope()) {
             String scopePrefix = config.getScopePrefix();
             if (scopePrefix != null && !className.startsWith(scopePrefix + "/")) {
+                if (config.isVerbose()) {
+                    Logger.debug("  -> Skipping: outside scope (" + scopePrefix + ")");
+                }
                 return false;
             }
         }
 
+        if (config.isVerbose()) {
+            Logger.debug("  -> Will rename class: " + className);
+        }
         return true;
     }
 
@@ -170,6 +233,10 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
             if (!packageMappings.containsKey(packageName)) {
                 String obfuscatedPackage = generateObfuscatedPackageName(packageName, config);
                 packageMappings.put(packageName, obfuscatedPackage);
+                
+                if (config.isVerbose()) {
+                    Logger.debug("Package mapping: " + packageName + " -> " + obfuscatedPackage);
+                }
             }
         }
 
@@ -225,11 +292,20 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
             obfuscatedSimpleName = nameGenerator.generateClassName();
         }
 
+        String result;
         if (obfuscatedPackage.isEmpty()) {
-            return obfuscatedSimpleName;
+            result = obfuscatedSimpleName;
         } else {
-            return obfuscatedPackage.replace('.', '/') + "/" + obfuscatedSimpleName;
+            result = obfuscatedPackage.replace('.', '/') + "/" + obfuscatedSimpleName;
         }
+
+        if (config.isVerbose()) {
+            Logger.debug("Generated obfuscated name for " + originalName + ": " + result + 
+                        " (package: " + packageName + " -> " + obfuscatedPackage + 
+                        ", simple: " + simpleName + " -> " + obfuscatedSimpleName + ")");
+        }
+
+        return result;
     }
 
     private String generateInnerClassName(String originalName, ObfuscationConfig config) 
@@ -250,6 +326,29 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
     private int getClassDepth(String className) 
     {
         return (int) className.chars().filter(ch -> ch == '/').count();
+    }
+
+    private boolean isThirdPartyLibrary(String className) 
+    {
+        return className.startsWith("com/fasterxml/jackson/") ||
+               className.startsWith("org/objectweb/asm/") ||
+               className.startsWith("picocli/") ||
+               className.startsWith("net/fabricmc/") ||
+               className.startsWith("org/apache/") ||
+               className.startsWith("org/slf4j/") ||
+               className.startsWith("ch/qos/logback/") ||
+               className.startsWith("org/springframework/") ||
+               className.startsWith("com/google/") ||
+               className.startsWith("org/junit/") ||
+               className.startsWith("org/hamcrest/") ||
+               className.startsWith("org/mockito/") ||
+               className.startsWith("kotlin/") ||
+               className.startsWith("kotlinx/") ||
+               className.startsWith("scala/") ||
+               className.startsWith("akka/") ||
+               className.startsWith("com/typesafe/") ||
+               className.startsWith("org/jetbrains/") ||
+               className.startsWith("META-INF/");
     }
 
     @Override

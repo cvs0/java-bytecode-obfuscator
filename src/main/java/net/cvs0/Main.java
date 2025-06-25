@@ -37,6 +37,11 @@ public class Main implements Callable<Integer>
     @Option(names = {"--rename-methods"}, description = "Enable method renaming")
     private Boolean renameMethods;
 
+
+
+    @Option(names = {"--add-synthetic-members"}, description = "Add synthetic fields and methods")
+    private Boolean addSyntheticMembers;
+
     @Option(names = {"-v", "--verbose"}, description = "Enable verbose output")
     private boolean verbose;
 
@@ -337,6 +342,12 @@ public class Main implements Callable<Integer>
             builder.renameMethods(renameMethods);
         }
         
+
+        
+        if (addSyntheticMembers != null) {
+            builder.addSyntheticMembers(addSyntheticMembers);
+        }
+        
         builder.verbose(verbose);
         
         if (keepClasses != null) {
@@ -386,6 +397,7 @@ public class Main implements Callable<Integer>
                    .renameMethods(true);
         }
         
-        return builder.build();
+        ObfuscationConfig config = builder.build();
+        return config;
     }
 }

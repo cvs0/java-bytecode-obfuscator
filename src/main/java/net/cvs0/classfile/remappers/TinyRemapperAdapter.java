@@ -49,6 +49,9 @@ public class TinyRemapperAdapter
                 remapper.apply(outputConsumer);
             }
             
+            // Remove original classes that were mapped to avoid duplication
+            removeOriginalMappedClasses(outputPath, mappingContext);
+            
             updateManifestInJar(outputPath, mappingContext, manifestAttributes);
             
             addResourcesToJar(outputPath, resources);
@@ -204,6 +207,50 @@ public class TinyRemapperAdapter
 
                 if (config.isVerbose()) {
                     Logger.debug("Added resource: " + resourceName);
+                }
+            }
+        }
+        
+        Files.move(tempJar, jarPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    }
+    
+    private void removeOriginalMappedClasses(Path jarPath, MappingContext mappingContext) throws IOException 
+    {
+        if (mappingContext.getAllClassMappings().isEmpty()) {
+            return;
+        }
+        
+        Path tempJar = Files.createTempFile("obfuscated-temp", ".jar");
+        Set<String> classesToRemove = new HashSet<>();
+        
+        // Build set of original class names that were mapped (these should be removed)
+        for (String originalClass : mappingContext.getAllClassMappings().keySet()) {
+            classesToRemove.add(originalClass + ".class");
+        }
+        
+        if (config.isVerbose()) {
+            Logger.debug("Removing " + classesToRemove.size() + " original mapped classes to prevent duplication");
+        }
+        
+        try (JarInputStream inputStream = new JarInputStream(Files.newInputStream(jarPath))) {
+            Manifest manifest = inputStream.getManifest();
+            
+            try (JarOutputStream outputStream = new JarOutputStream(Files.newOutputStream(tempJar), manifest)) {
+                JarEntry entry;
+                while ((entry = inputStream.getNextJarEntry()) != null) {
+                    String entryName = entry.getName();
+                    
+                    // Skip original classes that were mapped
+                    if (classesToRemove.contains(entryName)) {
+                        if (config.isVerbose()) {
+                            Logger.debug("Removed original mapped class: " + entryName);
+                        }
+                        continue;
+                    }
+                    
+                    outputStream.putNextEntry(new JarEntry(entry.getName()));
+                    inputStream.transferTo(outputStream);
+                    outputStream.closeEntry();
                 }
             }
         }

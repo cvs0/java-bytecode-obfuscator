@@ -76,6 +76,14 @@ public class Obfuscator
 
     private void applyObfuscationStrategies(Program program, ObfuscationConfig config, MappingContext mappingContext) throws ObfuscationException 
     {
+        if (config.isVerbose()) {
+            Logger.info("Available strategies: " + strategies.size());
+            for (ObfuscationStrategy strategy : strategies) {
+                boolean enabled = strategy.isEnabled(config);
+                Logger.info("  - " + strategy.getName() + " (Priority: " + strategy.getPriority() + ") - Enabled: " + enabled);
+            }
+        }
+        
         List<ObfuscationStrategy> enabledStrategies = strategies.stream()
             .filter(strategy -> strategy.isEnabled(config))
             .sorted(Comparator.comparingInt(ObfuscationStrategy::getPriority))
@@ -196,9 +204,11 @@ public class Obfuscator
     {
         List<ObfuscationStrategy> defaultStrategies = new ArrayList<>();
         
+
         defaultStrategies.add(new ClassRenamingStrategy());
         defaultStrategies.add(new MethodRenamingStrategy());
         defaultStrategies.add(new FieldRenamingStrategy());
+        defaultStrategies.add(new SyntheticMemberStrategy());
 
         return defaultStrategies;
     }

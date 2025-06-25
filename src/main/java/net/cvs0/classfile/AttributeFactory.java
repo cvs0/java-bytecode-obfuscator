@@ -18,6 +18,14 @@ public class AttributeFactory
                 return createLineNumberTableAttribute(data);
             case "LocalVariableTable":
                 return createLocalVariableTableAttribute(data);
+            case "LocalVariableTypeTable":
+                return createLocalVariableTypeTableAttribute(data);
+            case "StackMapTable":
+                return createStackMapTableAttribute(data);
+            case "RuntimeVisibleAnnotations":
+                return createRuntimeVisibleAnnotationsAttribute(data);
+            case "MethodParameters":
+                return createMethodParametersAttribute(data);
             case "Exceptions":
                 return createExceptionsAttribute(data);
             case "ConstantValue":
@@ -212,6 +220,73 @@ public class AttributeFactory
         catch (IOException e)
         {
             throw new RuntimeException("Failed to parse Code attribute", e);
+        }
+    }
+
+    private static LocalVariableTypeTableAttribute createLocalVariableTypeTableAttribute(byte[] data)
+    {
+        try
+        {
+            DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+            LocalVariableTypeTableAttribute attribute = new LocalVariableTypeTableAttribute();
+            
+            int numberOfLocalVariableTypes = dis.readUnsignedShort();
+            for (int i = 0; i < numberOfLocalVariableTypes; i++)
+            {
+                int startPc = dis.readUnsignedShort();
+                int length = dis.readUnsignedShort();
+                int nameIndex = dis.readUnsignedShort();
+                int signatureIndex = dis.readUnsignedShort();
+                int index = dis.readUnsignedShort();
+                
+                attribute.addLocalVariableType(new LocalVariableTypeTableAttribute.LocalVariableTypeInfo(
+                    startPc, length, nameIndex, signatureIndex, index));
+            }
+            
+            dis.close();
+            return attribute;
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException("Failed to parse LocalVariableTypeTable attribute", e);
+        }
+    }
+
+    private static StackMapTableAttribute createStackMapTableAttribute(byte[] data)
+    {
+        StackMapTableAttribute attribute = new StackMapTableAttribute();
+        attribute.addFrame(new StackMapTableAttribute.StackMapFrame(0, data));
+        return attribute;
+    }
+
+    private static RuntimeVisibleAnnotationsAttribute createRuntimeVisibleAnnotationsAttribute(byte[] data)
+    {
+        RuntimeVisibleAnnotationsAttribute attribute = new RuntimeVisibleAnnotationsAttribute();
+        return attribute;
+    }
+
+    private static MethodParametersAttribute createMethodParametersAttribute(byte[] data)
+    {
+        try
+        {
+            DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+            MethodParametersAttribute attribute = new MethodParametersAttribute();
+            
+            int numberOfParameters = dis.readUnsignedByte();
+            for (int i = 0; i < numberOfParameters; i++)
+            {
+                int nameIndex = dis.readUnsignedShort();
+                int access = dis.readUnsignedShort();
+                
+                attribute.addParameter("param" + i, access);
+            }
+            
+            dis.close();
+            return attribute;
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException("Failed to parse MethodParameters attribute", e);
         }
     }
 

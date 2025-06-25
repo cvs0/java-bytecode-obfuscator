@@ -8,6 +8,7 @@ public class MappingContext
     private final Map<String, String> classMappings = new ConcurrentHashMap<>();
     private final Map<String, String> fieldMappings = new ConcurrentHashMap<>();
     private final Map<String, String> methodMappings = new ConcurrentHashMap<>();
+    private final Map<String, String> localVariableMappings = new ConcurrentHashMap<>();
     private final Map<String, String> reverseMappings = new ConcurrentHashMap<>();
     
     private final Set<String> keepClasses = ConcurrentHashMap.newKeySet();
@@ -39,6 +40,13 @@ public class MappingContext
         reverseMappings.put(obfuscatedName, key);
     }
 
+    public void mapLocalVariable(String className, String methodName, String methodDescriptor, String originalName, int index, String obfuscatedName) 
+    {
+        String key = className + "." + methodName + methodDescriptor + "#" + originalName + "@" + index;
+        localVariableMappings.put(key, obfuscatedName);
+        reverseMappings.put(obfuscatedName, key);
+    }
+
     public String getObfuscatedClassName(String originalName) 
     {
         return classMappings.getOrDefault(originalName, originalName);
@@ -54,6 +62,12 @@ public class MappingContext
     {
         String key = className + "." + methodName + descriptor;
         return methodMappings.getOrDefault(key, methodName);
+    }
+
+    public String getObfuscatedLocalVariableName(String className, String methodName, String methodDescriptor, String variableName, int index) 
+    {
+        String key = className + "." + methodName + methodDescriptor + "#" + variableName + "@" + index;
+        return localVariableMappings.getOrDefault(key, variableName);
     }
 
     public String getOriginalName(String obfuscatedName) 
@@ -137,9 +151,14 @@ public class MappingContext
         return new HashMap<>(methodMappings);
     }
 
+    public Map<String, String> getAllLocalVariableMappings() 
+    {
+        return new HashMap<>(localVariableMappings);
+    }
+
     public int getTotalMappings() 
     {
-        return classMappings.size() + fieldMappings.size() + methodMappings.size();
+        return classMappings.size() + fieldMappings.size() + methodMappings.size() + localVariableMappings.size();
     }
 
     public void clear() 
@@ -159,6 +178,7 @@ public class MappingContext
         System.out.println("Mapping Statistics:");
         System.out.println("  Classes mapped: " + classMappings.size());
         System.out.println("  Fields mapped: " + fieldMappings.size());
+        System.out.println("  Local variables mapped: " + localVariableMappings.size());
         System.out.println("  Methods mapped: " + methodMappings.size());
         System.out.println("  Classes kept: " + keepClasses.size());
         System.out.println("  Methods kept: " + keepMethods.size());

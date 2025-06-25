@@ -266,13 +266,7 @@ public class Program
             }
         }
         
-        if (programClass.isPublic() && !programClass.isAbstract()) {
-            boolean hasPublicConstructor = programClass.getMethods().stream()
-                .anyMatch(method -> method.getName().equals("<init>") && method.isPublic());
-            if (hasPublicConstructor) {
-                entryPoints.add(className);
-            }
-        }
+
     }
 
     private void collectAllDependencies(String className, Set<String> allDeps, Set<String> visited) 

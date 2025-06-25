@@ -1,7 +1,9 @@
 package net.cvs0.classfile;
 
 import org.objectweb.asm.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ProgramField extends ProgramMember
@@ -9,6 +11,7 @@ public class ProgramField extends ProgramMember
     private final Object value;
     private final Type type;
     private final Map<String, Object> annotations;
+    private final List<Attribute> attributes;
     
     public ProgramField(int access, String name, String descriptor, String signature, Object value)
     {
@@ -16,6 +19,7 @@ public class ProgramField extends ProgramMember
         this.value = value;
         this.type = Type.getType(descriptor);
         this.annotations = new HashMap<>();
+        this.attributes = new ArrayList<>();
     }
     
     public Object getValue()
@@ -101,6 +105,16 @@ public class ProgramField extends ProgramMember
     public boolean hasAnnotation(String descriptor)
     {
         return annotations.containsKey(descriptor);
+    }
+    
+    public List<Attribute> getAttributes()
+    {
+        return new ArrayList<>(attributes);
+    }
+    
+    public void addAttribute(Attribute attribute)
+    {
+        attributes.add(attribute);
     }
     
     @Override

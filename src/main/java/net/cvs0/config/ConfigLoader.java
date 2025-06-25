@@ -32,8 +32,10 @@ public class ConfigLoader
             builder.renameMethods(root.get("renameMethods").asBoolean());
         }
         
-        if (root.has("renameLocalVariables")) {
-            builder.renameLocalVariables(root.get("renameLocalVariables").asBoolean());
+
+        
+        if (root.has("addSyntheticMembers")) {
+            builder.addSyntheticMembers(root.get("addSyntheticMembers").asBoolean());
         }
         
         if (root.has("stripDebugInfo")) {
@@ -201,7 +203,7 @@ public class ConfigLoader
         configMap.put("renameClasses", config.isRenameClasses());
         configMap.put("renameFields", config.isRenameFields());
         configMap.put("renameMethods", config.isRenameMethods());
-        configMap.put("renameLocalVariables", config.isRenameLocalVariables());
+        configMap.put("addSyntheticMembers", config.isAddSyntheticMembers());
         configMap.put("stripDebugInfo", config.isStripDebugInfo());
         configMap.put("obfuscateControlFlow", config.isObfuscateControlFlow());
         configMap.put("enableBackup", config.isEnableBackup());

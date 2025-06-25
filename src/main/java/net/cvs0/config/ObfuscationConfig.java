@@ -8,7 +8,7 @@ public class ObfuscationConfig
     private final boolean renameClasses;
     private final boolean renameFields;
     private final boolean renameMethods;
-    private final boolean renameLocalVariables;
+    private final boolean addSyntheticMembers;
     private final boolean stripDebugInfo;
     private final boolean obfuscateControlFlow;
     private final boolean enableBackup;
@@ -39,7 +39,7 @@ public class ObfuscationConfig
         this.renameClasses = builder.renameClasses;
         this.renameFields = builder.renameFields;
         this.renameMethods = builder.renameMethods;
-        this.renameLocalVariables = builder.renameLocalVariables;
+        this.addSyntheticMembers = builder.addSyntheticMembers;
         this.stripDebugInfo = builder.stripDebugInfo;
         this.obfuscateControlFlow = builder.obfuscateControlFlow;
         this.enableBackup = builder.enableBackup;
@@ -69,7 +69,7 @@ public class ObfuscationConfig
     public boolean isRenameClasses() { return renameClasses; }
     public boolean isRenameFields() { return renameFields; }
     public boolean isRenameMethods() { return renameMethods; }
-    public boolean isRenameLocalVariables() { return renameLocalVariables; }
+    public boolean isAddSyntheticMembers() { return addSyntheticMembers; }
     public boolean isStripDebugInfo() { return stripDebugInfo; }
     public boolean isObfuscateControlFlow() { return obfuscateControlFlow; }
     public boolean isEnableBackup() { return enableBackup; }
@@ -101,11 +101,12 @@ public class ObfuscationConfig
         }
         
         String[] parts = mainClass.split("/");
+        String result = null;
         if (parts.length >= 2) {
-            return parts[0] + "/" + parts[1];
+            result = parts[0] + "/" + parts[1];
         }
         
-        return null;
+        return result;
     }
 
     public static class Builder 
@@ -113,7 +114,7 @@ public class ObfuscationConfig
         private boolean renameClasses = true;
         private boolean renameFields = true;
         private boolean renameMethods = true;
-        private boolean renameLocalVariables = false;
+        private boolean addSyntheticMembers = false;
         private boolean stripDebugInfo = false;
         private boolean obfuscateControlFlow = false;
         private boolean enableBackup = false;
@@ -142,7 +143,7 @@ public class ObfuscationConfig
         public Builder renameClasses(boolean renameClasses) { this.renameClasses = renameClasses; return this; }
         public Builder renameFields(boolean renameFields) { this.renameFields = renameFields; return this; }
         public Builder renameMethods(boolean renameMethods) { this.renameMethods = renameMethods; return this; }
-        public Builder renameLocalVariables(boolean renameLocalVariables) { this.renameLocalVariables = renameLocalVariables; return this; }
+        public Builder addSyntheticMembers(boolean addSyntheticMembers) { this.addSyntheticMembers = addSyntheticMembers; return this; }
         public Builder stripDebugInfo(boolean stripDebugInfo) { this.stripDebugInfo = stripDebugInfo; return this; }
         public Builder obfuscateControlFlow(boolean obfuscateControlFlow) { this.obfuscateControlFlow = obfuscateControlFlow; return this; }
         public Builder enableBackup(boolean enableBackup) { this.enableBackup = enableBackup; return this; }

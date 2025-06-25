@@ -18,6 +18,7 @@ public abstract class NameGenerator
     public abstract String generateMethodName();
     public abstract String generateFieldName();
     public abstract String generateVariableName();
+    public abstract String generatePackageName();
 
     public void addReservedName(String name) 
     {
@@ -69,6 +70,7 @@ public abstract class NameGenerator
         private int methodCounter = 1;
         private int fieldCounter = 1;
         private int variableCounter = 1;
+        private int packageCounter = 1;
 
         @Override
         public String generateClassName() 
@@ -113,6 +115,17 @@ public abstract class NameGenerator
             usedNames.add(name);
             return name;
         }
+
+        @Override
+        public String generatePackageName() 
+        {
+            String name;
+            do {
+                name = "p" + packageCounter++;
+            } while (isNameUsed(name));
+            usedNames.add(name);
+            return name;
+        }
     }
 
     public static class SequentialAlphaGenerator extends NameGenerator 
@@ -121,6 +134,7 @@ public abstract class NameGenerator
         private int methodCounter = 0;
         private int fieldCounter = 0;
         private int variableCounter = 0;
+        private int packageCounter = 0;
 
         @Override
         public String generateClassName() 
@@ -166,6 +180,17 @@ public abstract class NameGenerator
             return name;
         }
 
+        @Override
+        public String generatePackageName() 
+        {
+            String name;
+            do {
+                name = generateAlphaSequence(packageCounter++);
+            } while (isNameUsed(name));
+            usedNames.add(name);
+            return name;
+        }
+
         private String generateAlphaSequence(int index) 
         {
             StringBuilder sb = new StringBuilder();
@@ -204,6 +229,12 @@ public abstract class NameGenerator
 
         @Override
         public String generateVariableName() 
+        {
+            return generateRandomName();
+        }
+
+        @Override
+        public String generatePackageName() 
         {
             return generateRandomName();
         }
@@ -254,6 +285,12 @@ public abstract class NameGenerator
             return generateRandomName();
         }
 
+        @Override
+        public String generatePackageName() 
+        {
+            return generateRandomName();
+        }
+
         private String generateRandomName() 
         {
             String name;
@@ -279,6 +316,7 @@ public abstract class NameGenerator
         private int methodIndex = 0;
         private int fieldIndex = 0;
         private int variableIndex = 0;
+        private int packageIndex = 0;
 
         @Override
         public String generateClassName() 
@@ -302,6 +340,12 @@ public abstract class NameGenerator
         public String generateVariableName() 
         {
             return generateSingleChar(variableIndex++);
+        }
+
+        @Override
+        public String generatePackageName() 
+        {
+            return generateSingleChar(packageIndex++);
         }
 
         private String generateSingleChar(int index) 
