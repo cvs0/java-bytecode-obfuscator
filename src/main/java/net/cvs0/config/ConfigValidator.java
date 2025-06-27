@@ -1,6 +1,8 @@
 package net.cvs0.config;
 
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public class ConfigValidator 
 {
@@ -48,6 +50,12 @@ public class ConfigValidator
         for (String pattern : config.getKeepClassPatterns()) {
             if (pattern == null || pattern.trim().isEmpty()) {
                 result.addError("Keep class pattern cannot be null or empty");
+            } else {
+                try {
+                    Pattern.compile(pattern);
+                } catch (PatternSyntaxException e) {
+                    result.addError("Invalid regex pattern '" + pattern + "': " + e.getMessage());
+                }
             }
         }
 

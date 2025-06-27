@@ -8,6 +8,7 @@ import net.cvs0.obfuscation.*;
 import net.cvs0.utils.Logger;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class MethodRenamingStrategy implements ObfuscationStrategy 
 {
@@ -69,6 +70,18 @@ public class MethodRenamingStrategy implements ObfuscationStrategy
             for (ProgramClass cls : program.getAllClasses()) {
                 for (ProgramMethod method : cls.getMethods()) {
                     if (isStandardEntryPoint(method)) {
+                        mappingContext.addKeepMethod(cls.getName(), method.getName(), method.getDescriptor());
+                        nameGenerator.addReservedName(method.getName());
+                    }
+                }
+            }
+        }
+
+        for (String pattern : config.getKeepMethodsInClassPatterns()) {
+            Pattern regex = Pattern.compile(pattern);
+            for (ProgramClass cls : program.getAllClasses()) {
+                if (regex.matcher(cls.getName()).matches()) {
+                    for (ProgramMethod method : cls.getMethods()) {
                         mappingContext.addKeepMethod(cls.getName(), method.getName(), method.getDescriptor());
                         nameGenerator.addReservedName(method.getName());
                     }

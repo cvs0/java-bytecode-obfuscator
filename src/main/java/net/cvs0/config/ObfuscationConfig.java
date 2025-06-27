@@ -27,6 +27,7 @@ public class ObfuscationConfig
     private final Set<String> keepClasses;
     private final Set<String> keepClassPatterns;
     private final Set<String> keepMethods;
+    private final Set<String> keepMethodsInClassPatterns;
     private final Set<String> keepFields;
     private final Set<String> includePackages;
     private final Set<String> excludePackages;
@@ -58,6 +59,7 @@ public class ObfuscationConfig
         this.keepClasses = Collections.unmodifiableSet(new HashSet<>(builder.keepClasses));
         this.keepClassPatterns = Collections.unmodifiableSet(new HashSet<>(builder.keepClassPatterns));
         this.keepMethods = Collections.unmodifiableSet(new HashSet<>(builder.keepMethods));
+        this.keepMethodsInClassPatterns = Collections.unmodifiableSet(new HashSet<>(builder.keepMethodsInClassPatterns));
         this.keepFields = Collections.unmodifiableSet(new HashSet<>(builder.keepFields));
         this.includePackages = Collections.unmodifiableSet(new HashSet<>(builder.includePackages));
         this.excludePackages = Collections.unmodifiableSet(new HashSet<>(builder.excludePackages));
@@ -88,6 +90,7 @@ public class ObfuscationConfig
     public Set<String> getKeepClasses() { return keepClasses; }
     public Set<String> getKeepClassPatterns() { return keepClassPatterns; }
     public Set<String> getKeepMethods() { return keepMethods; }
+    public Set<String> getKeepMethodsInClassPatterns() { return keepMethodsInClassPatterns; }
     public Set<String> getKeepFields() { return keepFields; }
     public Set<String> getIncludePackages() { return includePackages; }
     public Set<String> getExcludePackages() { return excludePackages; }
@@ -133,6 +136,7 @@ public class ObfuscationConfig
         private Set<String> keepClasses = new HashSet<>();
         private Set<String> keepClassPatterns = new HashSet<>();
         private Set<String> keepMethods = new HashSet<>();
+        private Set<String> keepMethodsInClassPatterns = new HashSet<>();
         private Set<String> keepFields = new HashSet<>();
         private Set<String> includePackages = new HashSet<>();
         private Set<String> excludePackages = new HashSet<>();
@@ -165,6 +169,8 @@ public class ObfuscationConfig
         public Builder keepClassPatterns(Collection<String> patterns) { this.keepClassPatterns.addAll(patterns); return this; }
         public Builder keepMethod(String methodSignature) { this.keepMethods.add(methodSignature); return this; }
         public Builder keepMethods(Collection<String> methodSignatures) { this.keepMethods.addAll(methodSignatures); return this; }
+        public Builder keepMethodsInClassPattern(String classPattern) { this.keepMethodsInClassPatterns.add(classPattern); return this; }
+        public Builder keepMethodsInClassPatterns(Collection<String> classPatterns) { this.keepMethodsInClassPatterns.addAll(classPatterns); return this; }
         public Builder keepField(String fieldSignature) { this.keepFields.add(fieldSignature); return this; }
         public Builder keepFields(Collection<String> fieldSignatures) { this.keepFields.addAll(fieldSignatures); return this; }
         public Builder includePackage(String packageName) { this.includePackages.add(packageName); return this; }

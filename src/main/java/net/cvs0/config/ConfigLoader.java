@@ -20,16 +20,24 @@ public class ConfigLoader
         JsonNode root = objectMapper.readTree(configFile);
         ObfuscationConfig.Builder builder = new ObfuscationConfig.Builder();
 
+        JsonNode obfuscationNode = root.has("obfuscation") ? root.get("obfuscation") : root;
+        
         if (root.has("renameClasses")) {
             builder.renameClasses(root.get("renameClasses").asBoolean());
+        } else if (obfuscationNode.has("renameClasses")) {
+            builder.renameClasses(obfuscationNode.get("renameClasses").asBoolean());
         }
-        
+
         if (root.has("renameFields")) {
             builder.renameFields(root.get("renameFields").asBoolean());
+        } else if (obfuscationNode.has("renameFields")) {
+            builder.renameFields(obfuscationNode.get("renameFields").asBoolean());
         }
         
         if (root.has("renameMethods")) {
             builder.renameMethods(root.get("renameMethods").asBoolean());
+        } else if (obfuscationNode.has("renameMethods")) {
+            builder.renameMethods(obfuscationNode.get("renameMethods").asBoolean());
         }
         
 
@@ -54,12 +62,18 @@ public class ConfigLoader
             builder.verbose(root.get("verbose").asBoolean());
         }
         
+        JsonNode keepRulesNode = root.has("keepRules") ? root.get("keepRules") : root;
+
         if (root.has("keepMainClass")) {
             builder.keepMainClass(root.get("keepMainClass").asBoolean());
+        } else if (keepRulesNode.has("keepMainClass")) {
+            builder.keepMainClass(keepRulesNode.get("keepMainClass").asBoolean());
         }
         
         if (root.has("keepStandardEntryPoints")) {
             builder.keepStandardEntryPoints(root.get("keepStandardEntryPoints").asBoolean());
+        } else if (keepRulesNode.has("keepStandardEntryPoints")) {
+            builder.keepStandardEntryPoints(keepRulesNode.get("keepStandardEntryPoints").asBoolean());
         }
         
         if (root.has("sequentialTransformers")) {
@@ -95,9 +109,9 @@ public class ConfigLoader
         if (root.has("maxThreads")) {
             builder.maxThreads(root.get("maxThreads").asInt());
         }
-
-        if (root.has("keepClasses")) {
-            JsonNode keepClasses = root.get("keepClasses");
+        
+        if (keepRulesNode.has("keepClasses")) {
+            JsonNode keepClasses = keepRulesNode.get("keepClasses");
             if (keepClasses.isArray()) {
                 List<String> classes = new ArrayList<>();
                 for (JsonNode node : keepClasses) {
@@ -107,8 +121,8 @@ public class ConfigLoader
             }
         }
         
-        if (root.has("keepClassPatterns")) {
-            JsonNode keepClassPatterns = root.get("keepClassPatterns");
+        if (keepRulesNode.has("keepClassPatterns")) {
+            JsonNode keepClassPatterns = keepRulesNode.get("keepClassPatterns");
             if (keepClassPatterns.isArray()) {
                 List<String> patterns = new ArrayList<>();
                 for (JsonNode node : keepClassPatterns) {
@@ -118,8 +132,8 @@ public class ConfigLoader
             }
         }
         
-        if (root.has("keepMethods")) {
-            JsonNode keepMethods = root.get("keepMethods");
+        if (keepRulesNode.has("keepMethods")) {
+            JsonNode keepMethods = keepRulesNode.get("keepMethods");
             if (keepMethods.isArray()) {
                 List<String> methods = new ArrayList<>();
                 for (JsonNode node : keepMethods) {
@@ -129,8 +143,19 @@ public class ConfigLoader
             }
         }
         
-        if (root.has("keepFields")) {
-            JsonNode keepFields = root.get("keepFields");
+        if (keepRulesNode.has("keepMethodsInClassPatterns")) {
+            JsonNode keepMethodsInClassPatterns = keepRulesNode.get("keepMethodsInClassPatterns");
+            if (keepMethodsInClassPatterns.isArray()) {
+                List<String> patterns = new ArrayList<>();
+                for (JsonNode node : keepMethodsInClassPatterns) {
+                    patterns.add(node.asText());
+                }
+                builder.keepMethodsInClassPatterns(patterns);
+            }
+        }
+        
+        if (keepRulesNode.has("keepFields")) {
+            JsonNode keepFields = keepRulesNode.get("keepFields");
             if (keepFields.isArray()) {
                 List<String> fields = new ArrayList<>();
                 for (JsonNode node : keepFields) {

@@ -212,34 +212,4 @@ public class Obfuscator
 
         return defaultStrategies;
     }
-
-    public void addStrategy(ObfuscationStrategy strategy) 
-    {
-        if (strategy != null) {
-            strategies.add(strategy);
-        }
-    }
-
-    public void removeStrategy(Class<? extends ObfuscationStrategy> strategyClass) 
-    {
-        strategies.removeIf(strategy -> strategy.getClass().equals(strategyClass));
-    }
-
-    public List<ObfuscationStrategy> getStrategies() 
-    {
-        return new ArrayList<>(strategies);
-    }
-
-    public void shutdown() 
-    {
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(30, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            executorService.shutdownNow();
-        }
-    }
 }

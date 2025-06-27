@@ -54,15 +54,20 @@ public class ClassRenamingStrategy implements ObfuscationStrategy
         }
 
         for (String pattern : config.getKeepClassPatterns()) {
-            Pattern regex = Pattern.compile(pattern.replace("*", ".*"));
-            for (ProgramClass cls : program.getAllClasses()) {
-                if (regex.matcher(cls.getName()).matches()) {
-                    mappingContext.addKeepClass(cls.getName());
-                    nameGenerator.addReservedName(cls.getName());
-                    if (config.isVerbose()) {
-                        Logger.debug("Added keep class by pattern '" + pattern + "': " + cls.getName());
+            try {
+                Pattern regex = Pattern.compile(pattern);
+                int matchCount = 0;
+                for (ProgramClass cls : program.getAllClasses()) {
+                    String className = cls.getName();
+                    if (regex.matcher(className).matches()) {
+                        mappingContext.addKeepClass(className);
+                        nameGenerator.addReservedName(className);
+                        matchCount++;
                     }
                 }
+                Logger.info("Pattern '" + pattern + "' matched " + matchCount + " classes");
+            } catch (Exception e) {
+                Logger.info("Invalid regex pattern '" + pattern + "': " + e.getMessage());
             }
         }
 
